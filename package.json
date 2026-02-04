@@ -1,0 +1,21 @@
+{
+  "name": "burnett-metal-building-closer",
+  "version": "1.0.0",
+  "description": "Metal building sales application for Burnett Custom Homes",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server -p 8080 -o",
+    "dev": "npx http-server -p 8080 -o"
+  },
+  "keywords": [
+    "metal-building",
+    "sales",
+    "contract",
+    "signature"
+  ],
+  "author": "Burnett Custom Homes",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
