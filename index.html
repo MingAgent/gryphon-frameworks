@@ -3,31 +3,57 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Burnett Customs - Contract Signing</title>
+  <title>Burnett Customs - MSA Contract Signing</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <style>
+    /* ==================== BRAND COLORS ====================
+       Primary:   Dark Azure #003057, Vivid Azure #05c3de
+       Secondary: Dark Azure #002f57, Vivid Azure #04ceea, Dark Azure #01315b
+       Background: Black #000000, White #ffffff
+    ========================================================= */
+    :root {
+      --primary-dark: #003057;
+      --primary-vivid: #05c3de;
+      --secondary-dark: #002f57;
+      --secondary-vivid: #04ceea;
+      --secondary-darkest: #01315b;
+      --bg-black: #000000;
+      --bg-white: #ffffff;
+    }
+
     * { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
 
     .signature-pad {
       border: 2px dashed #9ca3af;
       border-radius: 8px;
-      background: #fff;
+      background: var(--bg-white);
       touch-action: none;
       cursor: crosshair;
     }
-    .signature-pad.signed { border-color: #22c55e; border-style: solid; }
+    .signature-pad.signed { border-color: var(--primary-vivid); border-style: solid; }
+
+    .initials-pad {
+      border: 2px dashed #9ca3af;
+      border-radius: 4px;
+      background: var(--bg-white);
+      touch-action: none;
+      cursor: crosshair;
+      display: inline-block;
+    }
+    .initials-pad.signed { border-color: var(--primary-vivid); border-style: solid; }
 
     .progress-step {
-      width: 32px; height: 32px;
+      width: 28px; height: 28px;
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-weight: bold; font-size: 14px;
+      font-weight: bold; font-size: 11px;
       transition: all 0.3s;
+      flex-shrink: 0;
     }
-    .progress-step.completed { background: #22c55e; color: white; }
-    .progress-step.current { background: #3b82f6; color: white; transform: scale(1.1); }
+    .progress-step.completed { background: var(--primary-vivid); color: var(--bg-white); }
+    .progress-step.current { background: var(--primary-dark); color: var(--bg-white); transform: scale(1.1); }
     .progress-step.pending { background: #e5e7eb; color: #9ca3af; }
 
     .contract-section {
@@ -38,21 +64,54 @@
       margin-bottom: 16px;
     }
 
+    .legal-text {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #374151;
+    }
+
+    .section-ack {
+      background: #e0f7fa;
+      border: 2px solid var(--primary-vivid);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    .section-ack.complete {
+      background: #e0f7fa;
+      border-color: var(--primary-dark);
+    }
+
+    .btn-primary {
+      background: var(--primary-dark);
+      color: var(--bg-white);
+      transition: background 0.2s;
+    }
+    .btn-primary:hover { background: var(--secondary-darkest); }
+    .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: var(--primary-vivid);
+      color: var(--primary-dark);
+      transition: background 0.2s;
+    }
+    .btn-secondary:hover { background: var(--secondary-vivid); }
+
+    .header-bar {
+      background: var(--primary-dark);
+      color: var(--bg-white);
+    }
+
+    .accent-text { color: var(--primary-vivid); }
+    .accent-bg { background: var(--primary-vivid); }
+
     @media print {
       body { font-size: 9pt; line-height: 1.3; }
       .no-print { display: none !important; }
-      .print-only { display: block !important; }
-      .signature-pad { border: 1px solid #000 !important; }
-      input[type="text"], input[type="email"], input[type="tel"] {
-        border: none !important;
-        border-bottom: 1px solid #000 !important;
-        background: transparent !important;
-      }
+      .signature-pad, .initials-pad { border: 1px solid var(--bg-black) !important; }
     }
-    .print-only { display: none; }
 
-    .highlight { background: #fef3c7; border: 2px solid #f59e0b; }
-    .section-complete { border-left: 4px solid #22c55e; }
+    .highlight { background: #e0f7fa; border: 2px solid var(--primary-vivid); }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -60,11 +119,9 @@
 
   <script>
     // ==================== EMAILJS CONFIG ====================
-    // Initialize EmailJS - Replace with your public key
-    // Sign up free at emailjs.com
-    const EMAILJS_PUBLIC_KEY = 'YOUR_PUBLIC_KEY'; // Replace this
-    const EMAILJS_SERVICE_ID = 'YOUR_SERVICE_ID'; // Replace this
-    const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID'; // Replace this
+    const EMAILJS_PUBLIC_KEY = 'YOUR_PUBLIC_KEY';
+    const EMAILJS_SERVICE_ID = 'YOUR_SERVICE_ID';
+    const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
 
     if (EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY') {
       emailjs.init(EMAILJS_PUBLIC_KEY);
@@ -88,26 +145,41 @@
         phone: '',
         email: '',
         address: '',
-        propertyAddress: ''
+        propertyAddress: '',
+        title: ''
       },
 
-      // Contract acknowledgments
-      acks: {
-        changeOrders: false,
-        delays: false,
-        payments: false,
-        warranties: false,
-        arbitration: false,
-        juryWaiver: false,
-        rcla: false,
-        contractorReview: false
+      // Section acknowledgments
+      sections: {
+        definitions: { checked: false, initialed: false },
+        changeOrders: { checked: false, initialed: false },
+        plans: { checked: false, initialed: false },
+        consumerProducts: { checked: false, initialed: false },
+        delays: { checked: false, initialed: false },
+        draws: { checked: false, initialed: false },
+        materialCosts: { checked: false, initialed: false },
+        contractorResp: { checked: false, initialed: false },
+        scope: { checked: false, initialed: false },
+        earlyOccupation: { checked: false, initialed: false },
+        warranties: { checked: false, initialed: false },
+        warrantyLimits: { checked: false, initialed: false },
+        insurance: { checked: false, initialed: false },
+        confidentiality: { checked: false, initialed: false },
+        defaultLiability: { checked: false, initialed: false },
+        arbitration: { checked: false, initialed: false },
+        juryWaiver: { checked: false, initialed: false },
+        rcla: { checked: false, initialed: false }
       },
 
       // Signatures
       ownerTypedName: '',
-      contractorTypedName: 'Robert Burnett',
       ownerSigned: false,
+      contractorTypedName: 'Bobby Burnett',
       contractorSigned: false,
+
+      // Payment
+      paymentMethod: null,
+      paymentReference: '',
 
       // Sending
       sending: false,
@@ -115,21 +187,24 @@
       sendError: null
     };
 
+    // Store initials pads
+    const initialsPads = {};
+
     // ==================== DATA ====================
     const PACKAGES = {
-      L1: { name: 'Level 1 - Basic', desc: 'Pole Barn Weld-Up', color: '#3b82f6',
+      L1: { name: 'Level 1 - Basic', desc: 'Pole Barn Weld-Up', color: '#05c3de',
         sizes: {
           '30x40x10': { label: "30' × 40' × 10'", price: 18500 },
           '40x50x12': { label: "40' × 50' × 12'", price: 32500 },
           '40x60x14': { label: "40' × 60' × 14'", price: 44500 }
         }},
-      L2: { name: 'Level 2 - Better', desc: 'Full I-Beam Weld-Up', color: '#22c55e',
+      L2: { name: 'Level 2 - Better', desc: 'Full I-Beam Weld-Up', color: '#003057',
         sizes: {
           '30x40x10': { label: "30' × 40' × 10'", price: 26500 },
           '40x50x12': { label: "40' × 50' × 12'", price: 45500 },
           '40x60x14': { label: "40' × 60' × 14'", price: 62500 }
         }},
-      L3: { name: 'Level 3 - Best', desc: 'Bolt-Up Construction', color: '#a855f7',
+      L3: { name: 'Level 3 - Best', desc: 'Bolt-Up Construction', color: '#01315b',
         sizes: {
           '30x40x10': { label: "30' × 40' × 10'", price: 38500 },
           '40x50x12': { label: "40' × 50' × 12'", price: 65500 },
@@ -156,29 +231,40 @@
       ]}
     ];
 
-    // Contract signing sections
+    // Contract sections configuration
     const CONTRACT_SECTIONS = [
-      { id: 'info', title: 'Customer Information', icon: '👤' },
-      { id: 'changeOrders', title: 'Change Orders', icon: '📝' },
-      { id: 'delays', title: 'Delays & Force Majeure', icon: '⏰' },
-      { id: 'payments', title: 'Payment Terms', icon: '💰' },
-      { id: 'warranties', title: 'Warranties', icon: '🛡️' },
-      { id: 'arbitration', title: 'Arbitration Agreement', icon: '⚖️' },
-      { id: 'juryWaiver', title: 'Jury Trial Waiver', icon: '🏛️' },
-      { id: 'rcla', title: 'RCLA Notice', icon: '📋' },
-      { id: 'review', title: 'Contract Review', icon: '✅' },
-      { id: 'signatures', title: 'Signatures', icon: '✍️' }
+      { id: 'info', title: 'Customer Information', icon: '👤', requiresAck: false },
+      { id: 'definitions', title: 'Definitions', icon: '📖', requiresAck: true },
+      { id: 'changeOrders', title: 'Change Orders', icon: '📝', requiresAck: true },
+      { id: 'plans', title: 'Plans', icon: '📐', requiresAck: true },
+      { id: 'consumerProducts', title: 'Consumer Products', icon: '🏭', requiresAck: true },
+      { id: 'delays', title: 'Delays & Force Majeure', icon: '⏰', requiresAck: true },
+      { id: 'draws', title: 'Draws & Payment Terms', icon: '💰', requiresAck: true },
+      { id: 'materialCosts', title: 'Material Costs', icon: '📦', requiresAck: true },
+      { id: 'contractorResp', title: 'Contractor Responsibilities', icon: '🔧', requiresAck: true },
+      { id: 'scope', title: 'Scope of Contract', icon: '📏', requiresAck: true },
+      { id: 'earlyOccupation', title: 'Early Occupation', icon: '🏠', requiresAck: true },
+      { id: 'warranties', title: 'Warranties', icon: '🛡️', requiresAck: true },
+      { id: 'warrantyLimits', title: 'Warranty Limitations', icon: '⚠️', requiresAck: true },
+      { id: 'insurance', title: 'Insurance', icon: '📋', requiresAck: true },
+      { id: 'confidentiality', title: 'Confidentiality', icon: '🔒', requiresAck: true },
+      { id: 'defaultLiability', title: 'Default & Liability', icon: '⚖️', requiresAck: true },
+      { id: 'arbitration', title: 'Binding Arbitration', icon: '🏛️', requiresAck: true },
+      { id: 'juryWaiver', title: 'Jury Trial Waiver', icon: '📜', requiresAck: true },
+      { id: 'rcla', title: 'RCLA Notice', icon: '🔔', requiresAck: true },
+      { id: 'signatures', title: 'Signatures & Payment', icon: '✍️', requiresAck: false }
     ];
 
-    // ==================== SIGNATURE PAD ====================
+    // ==================== SIGNATURE/INITIALS PAD ====================
     class SignaturePad {
-      constructor(canvas, onChange) {
+      constructor(canvas, onChange, isInitials = false) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.drawing = false;
         this.onChange = onChange;
+        this.isInitials = isInitials;
         this.ctx.strokeStyle = '#000';
-        this.ctx.lineWidth = 2;
+        this.ctx.lineWidth = isInitials ? 1.5 : 2;
         this.ctx.lineCap = 'round';
         this.ctx.lineJoin = 'round';
 
@@ -249,38 +335,25 @@
     function getFinalPayment() { return Math.round(getTotal() * 0.25); }
 
     function canProceedFromSection(sectionId) {
-      switch(sectionId) {
-        case 'info':
-          return state.customer.name && state.customer.phone &&
-                 state.customer.email && state.customer.address &&
-                 state.customer.propertyAddress;
-        case 'changeOrders':
-          return state.acks.changeOrders;
-        case 'delays':
-          return state.acks.delays;
-        case 'payments':
-          return state.acks.payments;
-        case 'warranties':
-          return state.acks.warranties;
-        case 'arbitration':
-          return state.acks.arbitration;
-        case 'juryWaiver':
-          return state.acks.juryWaiver;
-        case 'rcla':
-          return state.acks.rcla;
-        case 'review':
-          return state.acks.contractorReview;
-        case 'signatures':
-          return state.ownerTypedName && state.contractorTypedName &&
-                 state.ownerSigned && state.contractorSigned;
-        default:
-          return true;
-      }
-    }
+      const section = CONTRACT_SECTIONS.find(s => s.id === sectionId);
 
-    function isSectionComplete(index) {
-      if (index >= state.contractStep) return false;
-      return canProceedFromSection(CONTRACT_SECTIONS[index].id);
+      if (sectionId === 'info') {
+        return state.customer.name && state.customer.phone &&
+               state.customer.email && state.customer.address &&
+               state.customer.propertyAddress;
+      }
+
+      if (sectionId === 'signatures') {
+        return state.ownerTypedName && state.contractorTypedName &&
+               state.ownerSigned && state.contractorSigned && state.paymentMethod;
+      }
+
+      if (section && section.requiresAck) {
+        const ack = state.sections[sectionId];
+        return ack && ack.checked && ack.initialed;
+      }
+
+      return true;
     }
 
     // ==================== RENDER ====================
@@ -288,27 +361,25 @@
       const app = document.getElementById('app');
       const total = getTotal();
 
-      // If we haven't selected a package yet, show quote builder
       if (!state.level || !state.size || state.quoteStep < 3) {
         renderQuoteBuilder(app, total);
         return;
       }
 
-      // Show contract signing flow
       renderContractFlow(app, total);
     }
 
     function renderQuoteBuilder(app, total) {
       let html = `
-        <header class="bg-blue-800 text-white p-4 shadow-lg">
+        <header class="header-bar text-white p-4 shadow-lg">
           <div class="max-w-3xl mx-auto flex justify-between items-center">
             <div>
               <h1 class="text-xl font-bold">Burnett Customs</h1>
-              <p class="text-blue-200 text-sm">Metal Building Sales</p>
+              <p class="text-[#05c3de] text-sm">Metal Building Sales</p>
             </div>
             <div class="text-right">
               <div class="text-2xl font-bold text-yellow-300">$${total.toLocaleString()}</div>
-              <div class="text-blue-200 text-xs">Total</div>
+              <div class="text-[#05c3de] text-xs">Total</div>
             </div>
           </div>
         </header>
@@ -358,7 +429,7 @@
             const selected = state.addons[item.id];
             const qty = state.quantities[item.id] || 1;
             html += `
-              <div class="flex items-center justify-between p-3 rounded-lg border-2 ${selected ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white'}">
+              <div class="flex items-center justify-between p-3 rounded-lg border-2 ${selected ? 'border-[#05c3de] bg-[#e0f7fa]' : 'border-gray-200 bg-white'}">
                 <div>
                   <div class="font-semibold">${item.name}</div>
                   <div class="text-green-600 font-bold">$${item.price.toLocaleString()}</div>
@@ -369,7 +440,7 @@
                     <span class="w-8 text-center font-semibold">${qty}</span>
                     <button onclick="updateQty('${item.id}', 1)" class="w-8 h-8 rounded bg-gray-200 font-bold">+</button>
                   ` : ''}
-                  <button onclick="toggleAddon('${item.id}')" class="w-12 h-12 rounded-full text-xl font-bold ${selected ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}">
+                  <button onclick="toggleAddon('${item.id}')" class="w-12 h-12 rounded-full text-xl font-bold" style="background: ${selected ? '#05c3de' : '#f3f4f6'}; color: ${selected ? 'white' : '#9ca3af'}">
                     ${selected ? '✓' : '+'}
                   </button>
                 </div>
@@ -384,7 +455,7 @@
       html += `
         <div class="flex justify-between mt-6">
           <button onclick="prevQuoteStep()" ${state.quoteStep === 0 ? 'disabled' : ''} class="py-3 px-6 rounded-xl font-semibold ${state.quoteStep === 0 ? 'bg-gray-100 text-gray-400' : 'bg-gray-200 hover:bg-gray-300'}">← Back</button>
-          <button onclick="nextQuoteStep()" ${!canNext ? 'disabled' : ''} class="py-3 px-8 rounded-xl font-semibold ${canNext ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-200 text-gray-400'}">
+          <button onclick="nextQuoteStep()" ${!canNext ? 'disabled' : ''} class="py-3 px-8 rounded-xl font-semibold ${canNext ? 'btn-primary text-white' : 'bg-gray-200 text-gray-400'}">
             ${state.quoteStep === 2 ? 'Continue to Contract →' : 'Next →'}
           </button>
         </div>
@@ -401,40 +472,40 @@
       const currentSection = CONTRACT_SECTIONS[state.contractStep];
 
       let html = `
-        <header class="bg-blue-800 text-white p-4 shadow-lg no-print">
+        <header class="header-bar text-white p-3 shadow-lg no-print">
           <div class="max-w-4xl mx-auto">
-            <div class="flex justify-between items-center mb-4">
+            <div class="flex justify-between items-center mb-3">
               <div>
-                <h1 class="text-xl font-bold">Contract Signing</h1>
-                <p class="text-blue-200 text-sm">${pkg.name} - ${size.label}</p>
+                <h1 class="text-lg font-bold">Master Service Agreement</h1>
+                <p class="text-[#05c3de] text-xs">${pkg.name} - ${size.label}</p>
               </div>
               <div class="text-right">
-                <div class="text-2xl font-bold text-yellow-300">$${total.toLocaleString()}</div>
+                <div class="text-xl font-bold text-yellow-300">$${total.toLocaleString()}</div>
+                <div class="text-[#05c3de] text-xs">Contract Sum</div>
               </div>
             </div>
 
             <!-- Progress Bar -->
-            <div class="flex items-center justify-between overflow-x-auto pb-2">
+            <div class="flex items-center gap-1 overflow-x-auto pb-2">
               ${CONTRACT_SECTIONS.map((section, i) => `
-                <div class="flex flex-col items-center min-w-[60px]">
-                  <div class="progress-step ${i < state.contractStep ? 'completed' : i === state.contractStep ? 'current' : 'pending'}">
-                    ${i < state.contractStep ? '✓' : section.icon}
+                <div class="flex items-center">
+                  <div class="progress-step ${i < state.contractStep ? 'completed' : i === state.contractStep ? 'current' : 'pending'}" title="${section.title}">
+                    ${i < state.contractStep ? '✓' : i + 1}
                   </div>
-                  <span class="text-xs mt-1 text-center ${i === state.contractStep ? 'text-yellow-300 font-bold' : 'text-blue-200'}">${section.title.split(' ')[0]}</span>
+                  ${i < CONTRACT_SECTIONS.length - 1 ? `<div class="w-3 h-0.5" style="background: ${i < state.contractStep ? '#05c3de' : '#003057'}"></div>` : ''}
                 </div>
-                ${i < CONTRACT_SECTIONS.length - 1 ? `<div class="flex-1 h-1 mx-1 ${i < state.contractStep ? 'bg-green-500' : 'bg-blue-600'}"></div>` : ''}
               `).join('')}
             </div>
           </div>
         </header>
 
         <main class="max-w-4xl mx-auto p-4">
-          <div class="bg-white rounded-xl shadow-lg p-6 mb-4">
-            <h2 class="text-2xl font-bold mb-2 flex items-center gap-3">
-              <span class="text-3xl">${currentSection.icon}</span>
-              Step ${state.contractStep + 1}: ${currentSection.title}
+          <div class="bg-white rounded-xl shadow-lg p-5 mb-4">
+            <h2 class="text-xl font-bold mb-1 flex items-center gap-2">
+              <span class="text-2xl">${currentSection.icon}</span>
+              Step ${state.contractStep + 1} of ${CONTRACT_SECTIONS.length}: ${currentSection.title}
             </h2>
-            <p class="text-gray-500 mb-6">Please review and complete this section to continue.</p>
+            <p class="text-gray-500 text-sm mb-4">Please review and complete this section to continue.</p>
       `;
 
       // Render current section content
@@ -446,30 +517,30 @@
           </div>
 
           <div class="flex justify-between no-print">
-            <button onclick="prevContractStep()" ${state.contractStep === 0 ? 'disabled' : ''} class="py-3 px-6 rounded-xl font-semibold ${state.contractStep === 0 ? 'bg-gray-100 text-gray-400' : 'bg-gray-200 hover:bg-gray-300'}">
-              ← Previous Section
+            <button onclick="prevContractStep()" ${state.contractStep === 0 ? 'disabled' : ''} class="py-3 px-5 rounded-xl font-semibold ${state.contractStep === 0 ? 'bg-gray-100 text-gray-400' : 'bg-gray-200 hover:bg-gray-300'}">
+              ← Previous
             </button>
             ${state.contractStep < CONTRACT_SECTIONS.length - 1 ? `
-              <button id="nextSectionBtn" onclick="nextContractStep()" ${!canProceed ? 'disabled' : ''} class="py-3 px-8 rounded-xl font-semibold ${canProceed ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}">
+              <button id="nextSectionBtn" onclick="nextContractStep()" ${!canProceed ? 'disabled' : ''} class="py-3 px-6 rounded-xl font-semibold ${canProceed ? 'btn-primary text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}">
                 Next Section →
               </button>
             ` : `
-              <button onclick="sendContract()" ${!canProceed || state.sending ? 'disabled' : ''} class="py-3 px-8 rounded-xl font-semibold ${canProceed && !state.sending ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}">
-                ${state.sending ? '📧 Sending...' : '📧 Send Contract to Both Parties'}
+              <button onclick="sendContract()" ${!canProceed || state.sending ? 'disabled' : ''} class="py-3 px-6 rounded-xl font-semibold ${canProceed && !state.sending ? 'btn-primary text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}">
+                ${state.sending ? '📧 Sending...' : '📧 Complete & Send Contract'}
               </button>
             `}
           </div>
 
-          `<p id="validationWarning" class="text-center text-amber-600 text-sm mt-3 no-print" style="${canProceed ? 'display:none' : ''}">⚠️ Please complete all required fields in this section to continue</p>`
+          <p id="validationWarning" class="text-center text-amber-600 text-sm mt-3 no-print" style="${canProceed ? 'display:none' : ''}">⚠️ Please complete all required items in this section to continue</p>
           ${state.sendError ? `<p class="text-center text-red-600 text-sm mt-3 no-print">❌ ${state.sendError}</p>` : ''}
           ${state.sent ? `
-            <div class="mt-4 p-4 bg-green-50 border border-green-300 rounded-xl text-center">
-              <p class="text-green-700 font-bold text-lg">✅ Contract Sent Successfully!</p>
+            <div class="mt-4 p-4 bg-[#e0f7fa] border border-green-300 rounded-xl text-center">
+              <p class="text-green-700 font-bold text-lg">✅ Contract Executed Successfully!</p>
               <p class="text-green-600">Copies sent to:</p>
               <p class="text-green-700">• ${state.customer.email}</p>
               <p class="text-green-700">• bobby@burnettcustoms.net</p>
-              <button onclick="window.print()" class="mt-3 py-2 px-6 bg-blue-600 text-white rounded-lg font-semibold">🖨️ Print Copy</button>
-              <button onclick="resetApp()" class="mt-3 ml-2 py-2 px-6 bg-gray-200 rounded-lg font-semibold">Start New Quote</button>
+              <button onclick="window.print()" class="mt-3 py-2 px-6 btn-primary rounded-lg font-semibold">🖨️ Print Copy</button>
+              <button onclick="resetApp()" class="mt-3 ml-2 py-2 px-6 bg-gray-200 rounded-lg font-semibold">Start New Contract</button>
             </div>
           ` : ''}
         </main>
@@ -477,382 +548,716 @@
 
       app.innerHTML = html;
 
-      // Initialize signature pads if on signatures step
-      if (currentSection.id === 'signatures') {
-        setTimeout(() => {
-          const ownerCanvas = document.getElementById('ownerSig');
-          const contractorCanvas = document.getElementById('contractorSig');
-          if (ownerCanvas && !window.ownerPad) {
-            window.ownerPad = new SignaturePad(ownerCanvas, (signed) => {
-              state.ownerSigned = signed;
-              updateSignatureStatus();
-            });
-          }
-          if (contractorCanvas && !window.contractorPad) {
-            window.contractorPad = new SignaturePad(contractorCanvas, (signed) => {
-              state.contractorSigned = signed;
-              updateSignatureStatus();
-            });
-          }
-        }, 100);
-      }
+      // Initialize pads after render
+      setTimeout(() => initializePads(currentSection.id), 50);
     }
 
     function renderSectionContent(sectionId, total, today, pkg, size) {
       const deposit = getDeposit();
-      const midPay = getMidPayment();
-      const finalPay = getFinalPayment();
+      const ack = state.sections[sectionId];
+      const isComplete = ack && ack.checked && ack.initialed;
 
       switch(sectionId) {
         case 'info':
-          return `
-            <div class="grid md:grid-cols-2 gap-4">
-              <div>
-                <label class="block font-semibold mb-1">Full Legal Name <span class="text-red-500">*</span></label>
-                <input type="text" value="${state.customer.name}" oninput="updateCustomer('name', this.value, this)"
-                  class="border-2 rounded-lg p-3 w-full text-lg ${state.customer.name ? 'border-green-500' : 'border-gray-300'}" placeholder="Enter your full legal name">
-              </div>
-              <div>
-                <label class="block font-semibold mb-1">Phone Number <span class="text-red-500">*</span></label>
-                <input type="tel" value="${state.customer.phone}" oninput="updateCustomer('phone', this.value, this)"
-                  class="border-2 rounded-lg p-3 w-full text-lg ${state.customer.phone ? 'border-green-500' : 'border-gray-300'}" placeholder="(555) 555-5555">
-              </div>
-              <div>
-                <label class="block font-semibold mb-1">Email Address <span class="text-red-500">*</span></label>
-                <input type="email" value="${state.customer.email}" oninput="updateCustomer('email', this.value, this)"
-                  class="border-2 rounded-lg p-3 w-full text-lg ${state.customer.email ? 'border-green-500' : 'border-gray-300'}" placeholder="your@email.com">
-                <p class="text-sm text-gray-500 mt-1">Contract copy will be sent to this email</p>
-              </div>
-              <div>
-                <label class="block font-semibold mb-1">Mailing Address <span class="text-red-500">*</span></label>
-                <input type="text" value="${state.customer.address}" oninput="updateCustomer('address', this.value, this)"
-                  class="border-2 rounded-lg p-3 w-full text-lg ${state.customer.address ? 'border-green-500' : 'border-gray-300'}" placeholder="123 Main St, City, TX 77001">
-              </div>
-              <div class="md:col-span-2">
-                <label class="block font-semibold mb-1">Property / Build Site Address <span class="text-red-500">*</span></label>
-                <input type="text" value="${state.customer.propertyAddress}" oninput="updateCustomer('propertyAddress', this.value, this)"
-                  class="border-2 rounded-lg p-3 w-full text-lg ${state.customer.propertyAddress ? 'border-green-500' : 'border-gray-300'}" placeholder="Address where building will be constructed">
-              </div>
-            </div>
-
-            <div class="mt-6 p-4 bg-blue-50 rounded-lg">
-              <h4 class="font-bold mb-2">Project Summary</h4>
-              <p><strong>Building:</strong> ${pkg.name} - ${size.label}</p>
-              <p><strong>Contract Sum:</strong> $${total.toLocaleString()}</p>
-              <p><strong>Contractor:</strong> Burnett Custom Homes, LLC</p>
-              <p><strong>Address:</strong> 5416 SW Moody St., Victoria, TX 77905</p>
-            </div>
-          `;
-
+          return renderCustomerInfo(total, pkg, size);
+        case 'definitions':
+          return renderDefinitions(today, isComplete);
         case 'changeOrders':
-          return `
-            <div class="contract-section">
-              <h4 class="font-bold text-lg mb-3">B.1. Change Orders</h4>
-              <p class="mb-3">(i) Contractor is under no duty to make any changes in the Plans requested by Owner until a change order is signed by Contractor and Owner or their duly authorized representatives.</p>
-              <p class="mb-3">(ii) Owner and Contractor, or their duly authorized representatives, must sign a written change order. An e-mail exchange or text message exchange in which the changes are discussed and acknowledged will also satisfy this requirement.</p>
-              <p class="mb-3">(iii) When Contractor receives a written request for any change, Contractor will present Owner with a proposal including any additional price, markup, and extensions to the projected Completion Date.</p>
-              <p class="mb-3">(iv) Failure of Owner to approve Contractor's proposal within five days after receipt shall constitute a rejection.</p>
-              <p class="mb-3">(v) Owner shall pay for all work resulting from agreed-upon change orders in cash within five business days after acceptance. This payment shall take place before work commences.</p>
-
-              <div class="bg-amber-50 border-2 border-amber-400 rounded-lg p-4 mt-4">
-                <p class="font-bold text-amber-800">⚠️ CHANGE ORDER FEE:</p>
-                <p class="text-amber-900">Owner agrees to pay <strong>$250.00 per Change Order request</strong> at the time the request is made.</p>
-                <p class="text-amber-900 mt-2">If change order(s) cause a disruption in progress, Customer will be billed <strong>$150 per working hour</strong> until work resumes.</p>
-              </div>
-            </div>
-
-            <label class="flex items-start gap-3 mt-6 p-4 rounded-lg border-2 ${state.acks.changeOrders ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-gray-50'}">
-              <input type="checkbox" ${state.acks.changeOrders ? 'checked' : ''} onchange="updateAck('changeOrders', this.checked)" class="w-6 h-6 mt-1">
-              <div>
-                <span class="font-bold">I acknowledge and agree to the Change Order terms</span>
-                <p class="text-sm text-gray-600">Including the $250 per change order fee and $150/hour disruption fee.</p>
-              </div>
-            </label>
-          `;
-
+          return renderChangeOrders(isComplete);
+        case 'plans':
+          return renderPlans(isComplete);
+        case 'consumerProducts':
+          return renderConsumerProducts(isComplete);
         case 'delays':
-          return `
-            <div class="contract-section">
-              <h4 class="font-bold text-lg mb-3">B.4. Delays in Performance</h4>
-              <p class="mb-3">Contractor shall not be liable for damages or delays in performance due to circumstances beyond its reasonable control, including, but not limited to:</p>
-              <ul class="list-disc ml-6 mb-3">
-                <li>Strikes or labor disputes</li>
-                <li>Any priority system established by government agencies</li>
-                <li>Weather conditions (including fires, floods, storms, earthquakes, or other acts of God)</li>
-                <li>Supplier delays for similar reasons</li>
-                <li>General availability of materials or labor</li>
-              </ul>
-              <p class="mb-3"><strong>Such events shall not constitute cancellation or termination of the Contract.</strong> Rather, the Completion Date shall extend accordingly.</p>
-
-              <h4 class="font-bold text-lg mb-3 mt-6">B.6. Material Costs</h4>
-              <p>Contractor shall pass through to customer/owner any and all additional price increases of materials cost occurring after contract signing.</p>
-            </div>
-
-            <label class="flex items-start gap-3 mt-6 p-4 rounded-lg border-2 ${state.acks.delays ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-gray-50'}">
-              <input type="checkbox" ${state.acks.delays ? 'checked' : ''} onchange="updateAck('delays', this.checked)" class="w-6 h-6 mt-1">
-              <div>
-                <span class="font-bold">I acknowledge and agree to the Delays and Material Costs terms</span>
-                <p class="text-sm text-gray-600">I understand that delays beyond contractor's control will extend the completion date, and material cost increases will be passed through.</p>
-              </div>
-            </label>
-          `;
-
-        case 'payments':
-          return `
-            <div class="contract-section">
-              <h4 class="font-bold text-lg mb-3">Payment Schedule</h4>
-              <p class="mb-4">The Contract Sum of <strong>$${total.toLocaleString()}</strong> will be paid as follows:</p>
-
-              <table class="w-full border-collapse mb-4">
-                <tr class="bg-gray-100"><th class="border p-3 text-left">Draw</th><th class="border p-3 text-left">Milestone</th><th class="border p-3 text-right">Amount</th></tr>
-                <tr><td class="border p-3 font-semibold">1. Deposit</td><td class="border p-3">Upon Contract Signing</td><td class="border p-3 text-right font-bold text-green-600">$${deposit.toLocaleString()} (50%)</td></tr>
-                <tr><td class="border p-3 font-semibold">2. Mid-Construction</td><td class="border p-3">Materials Delivered to Site</td><td class="border p-3 text-right font-bold">$${midPay.toLocaleString()} (25%)</td></tr>
-                <tr><td class="border p-3 font-semibold">3. Final Payment</td><td class="border p-3">Substantial Completion</td><td class="border p-3 text-right font-bold">$${finalPay.toLocaleString()} (25%)</td></tr>
-                <tr class="bg-green-50"><td class="border p-3 font-bold" colspan="2">TOTAL</td><td class="border p-3 text-right font-bold text-green-600 text-xl">$${total.toLocaleString()}</td></tr>
-              </table>
-
-              <div class="bg-red-50 border-2 border-red-400 rounded-lg p-4">
-                <p class="font-bold text-red-800">⚠️ LATE PAYMENT PENALTY:</p>
-                <p class="text-red-900">Payment Deadline means 2:00 P.M. on the third business day after Contractor's request.</p>
-                <p class="text-red-900 mt-2">If any Draw is not paid by the Payment Deadline:</p>
-                <ul class="list-disc ml-6 text-red-900">
-                  <li><strong>10% late fee</strong> will be added immediately</li>
-                  <li><strong>Additional 10%</strong> added every 72 hours until paid</li>
-                </ul>
-                <p class="text-red-900 mt-2">Contractor may cease work without breach of Contract if payment is not received.</p>
-              </div>
-            </div>
-
-            <label class="flex items-start gap-3 mt-6 p-4 rounded-lg border-2 ${state.acks.payments ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-gray-50'}">
-              <input type="checkbox" ${state.acks.payments ? 'checked' : ''} onchange="updateAck('payments', this.checked)" class="w-6 h-6 mt-1">
-              <div>
-                <span class="font-bold">I acknowledge and agree to the Payment Terms</span>
-                <p class="text-sm text-gray-600">Including the 50/25/25 payment schedule and late payment penalties.</p>
-              </div>
-            </label>
-          `;
-
+          return renderDelays(isComplete);
+        case 'draws':
+          return renderDraws(total, deposit, isComplete);
+        case 'materialCosts':
+          return renderMaterialCosts(isComplete);
+        case 'contractorResp':
+          return renderContractorResp(isComplete);
+        case 'scope':
+          return renderScope(isComplete);
+        case 'earlyOccupation':
+          return renderEarlyOccupation(isComplete);
         case 'warranties':
-          return `
-            <div class="contract-section">
-              <h4 class="font-bold text-lg mb-3">E. WARRANTIES</h4>
-              <p class="mb-3">Contractor warrants that its performance of work meets the residential construction warranties. The warranties extend for the following periods after substantial completion:</p>
-
-              <div class="grid md:grid-cols-3 gap-4 my-4">
-                <div class="bg-blue-50 p-4 rounded-lg text-center">
-                  <div class="text-3xl font-bold text-blue-600">1 Year</div>
-                  <div class="font-semibold">Workmanship & Materials</div>
-                </div>
-                <div class="bg-blue-50 p-4 rounded-lg text-center">
-                  <div class="text-3xl font-bold text-blue-600">1 Year</div>
-                  <div class="font-semibold">Plumbing, Electrical, HVAC</div>
-                </div>
-                <div class="bg-blue-50 p-4 rounded-lg text-center">
-                  <div class="text-3xl font-bold text-blue-600">1 Year</div>
-                  <div class="font-semibold">Major Structural Components</div>
-                </div>
-              </div>
-
-              <div class="bg-amber-50 border-2 border-amber-400 rounded-lg p-4 mt-4">
-                <p class="font-bold text-amber-800">⚠️ WARRANTY LIMITATION:</p>
-                <p class="text-amber-900">Any alteration(s) concerning warranted matters by Owner, or any other person or entity, results in Owner <strong>WAIVING</strong> any warranties through Contractor.</p>
-                <p class="text-amber-900 mt-2">These express warranties are given <strong>IN LIEU OF</strong> the implied warranty of good and workmanlike construction and <strong>IN LIEU OF</strong> the warranty of merchantability or fitness for any particular purpose, which are <strong>DISCLAIMED AND WAIVED</strong>.</p>
-              </div>
-            </div>
-
-            <label class="flex items-start gap-3 mt-6 p-4 rounded-lg border-2 ${state.acks.warranties ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-gray-50'}">
-              <input type="checkbox" ${state.acks.warranties ? 'checked' : ''} onchange="updateAck('warranties', this.checked)" class="w-6 h-6 mt-1">
-              <div>
-                <span class="font-bold">I acknowledge and agree to the Warranty terms and limitations</span>
-                <p class="text-sm text-gray-600">I understand that alterations void warranties and implied warranties are disclaimed.</p>
-              </div>
-            </label>
-          `;
-
+          return renderWarranties(isComplete);
+        case 'warrantyLimits':
+          return renderWarrantyLimits(isComplete);
+        case 'insurance':
+          return renderInsurance(isComplete);
+        case 'confidentiality':
+          return renderConfidentiality(isComplete);
+        case 'defaultLiability':
+          return renderDefaultLiability(isComplete);
         case 'arbitration':
-          return `
-            <div class="contract-section bg-blue-50 border-2 border-blue-400">
-              <h4 class="font-bold text-lg mb-3 text-blue-800">G.7. MEDIATION AND BINDING ARBITRATION</h4>
-              <p class="mb-3 font-semibold text-blue-900">IMPORTANT - READ CAREFULLY:</p>
-              <p class="mb-3">Any controversy, dispute or claim arising out of or relating to the design, construction or condition of the Improvements, including:</p>
-              <ul class="list-disc ml-6 mb-3">
-                <li>Any controversy, dispute or claim arising by virtue of representations, omissions, promises or warranties alleged to have been made by Builder</li>
-                <li>Any personal injury or property damage alleged to have been sustained by Owner on the Property</li>
-              </ul>
-              <p class="mb-3"><strong>SHALL FIRST BE SUBMITTED TO MEDIATION</strong> and, if not settled during mediation, <strong>SHALL THEREAFTER BE SUBMITTED TO BINDING ARBITRATION</strong> as provided by the Federal Arbitration Act (9 U.S.C. §1 et seq.)</p>
-              <p class="mb-3 font-bold text-red-700">AND NOT BY OR IN A COURT OF LAW.</p>
-
-              <p class="mb-3">In any arbitration proceeding:</p>
-              <ul class="list-disc ml-6 mb-3">
-                <li>All applicable Federal and State law (including Chapter 27 of the Texas Property Code) shall apply</li>
-                <li>The arbitration shall be conducted in the same county as the Property</li>
-                <li>The arbitrator may award to the prevailing party all or any portion of costs and fees</li>
-              </ul>
-
-              <p class="font-semibold">These rights and obligations survive termination, default, or completion of this Contract.</p>
-            </div>
-
-            <label class="flex items-start gap-3 mt-6 p-4 rounded-lg border-2 ${state.acks.arbitration ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-gray-50'}">
-              <input type="checkbox" ${state.acks.arbitration ? 'checked' : ''} onchange="updateAck('arbitration', this.checked)" class="w-6 h-6 mt-1">
-              <div>
-                <span class="font-bold">I acknowledge and agree to BINDING ARBITRATION</span>
-                <p class="text-sm text-gray-600">I understand that disputes will be resolved through arbitration, NOT in a court of law.</p>
-              </div>
-            </label>
-          `;
-
+          return renderArbitration(isComplete);
         case 'juryWaiver':
-          return `
-            <div class="contract-section bg-red-50 border-2 border-red-400">
-              <h4 class="font-bold text-lg mb-3 text-red-800">G.8. WAIVER OF TRIAL BY JURY</h4>
-              <p class="mb-3 text-red-900 font-semibold">IN THE EVENT THAT IT IS DETERMINED THAT THE ARBITRATION PROVISIONS ARE NOT ENFORCEABLE:</p>
-              <p class="mb-3 text-red-900">The parties stipulate and agree that any and all disputes between them shall be resolved by a court of competent jurisdiction in the county where the Property is located <strong>WITHOUT THE USE OF A JURY</strong>.</p>
-              <p class="mb-3 text-red-900 font-bold text-lg">THE RIGHT TO A TRIAL BY JURY IS HEREBY EXPRESSLY WAIVED BY OWNER AND BUILDER.</p>
-              <p class="text-red-900">These rights and obligations survive (1) termination; (2) default; or (3) Substantial Completion and payment in full.</p>
-            </div>
-
-            <label class="flex items-start gap-3 mt-6 p-4 rounded-lg border-2 ${state.acks.juryWaiver ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-gray-50'}">
-              <input type="checkbox" ${state.acks.juryWaiver ? 'checked' : ''} onchange="updateAck('juryWaiver', this.checked)" class="w-6 h-6 mt-1">
-              <div>
-                <span class="font-bold">I EXPRESSLY WAIVE MY RIGHT TO A JURY TRIAL</span>
-                <p class="text-sm text-gray-600">I understand that if arbitration is not enforceable, disputes will be resolved by a judge, not a jury.</p>
-              </div>
-            </label>
-          `;
-
+          return renderJuryWaiver(isComplete);
         case 'rcla':
-          return `
-            <div class="contract-section bg-amber-50 border-2 border-amber-400">
-              <h4 class="font-bold text-lg mb-3 text-amber-800">RESIDENTIAL CONSTRUCTION LIABILITY ACT (RCLA) NOTICE</h4>
-              <p class="mb-3 text-amber-900">This contract is subject to <strong>Chapter 27 of the Texas Property Code</strong>. The provisions of that chapter may affect your right to recover damages arising from a construction defect.</p>
-              <p class="mb-3 text-amber-900">If you have a complaint concerning a construction defect and that defect has not been corrected as may be required by law or by contract:</p>
-              <div class="bg-white p-4 rounded-lg border-2 border-amber-500 my-4">
-                <p class="font-bold text-amber-800">YOU MUST PROVIDE WRITTEN NOTICE:</p>
-                <ul class="list-disc ml-6 text-amber-900">
-                  <li>To the contractor by <strong>certified mail, return receipt requested</strong></li>
-                  <li><strong>Not later than the 60th day BEFORE</strong> the date you file suit or initiate arbitration</li>
-                  <li>The notice must refer to <strong>Chapter 27 of the Texas Property Code</strong></li>
-                  <li>The notice must <strong>describe the construction defect</strong></li>
-                </ul>
-              </div>
-              <p class="text-amber-900">If requested by the contractor, you must provide the contractor an opportunity to inspect and cure the defect as provided by Section 27.004 of the Texas Property Code.</p>
-            </div>
-
-            <div class="contract-section bg-gray-100 border-2 border-gray-400 mt-4">
-              <h4 class="font-bold text-lg mb-3">IMPORTANT NOTICE</h4>
-              <p>You and your contractor are responsible for meeting the terms and conditions of this contract. If you sign this contract and you fail to meet the terms and conditions of this contract, <strong>you may lose your legal ownership rights in your home</strong>.</p>
-              <p class="font-bold mt-2">KNOW YOUR RIGHTS AND DUTIES UNDER THE LAW.</p>
-            </div>
-
-            <label class="flex items-start gap-3 mt-6 p-4 rounded-lg border-2 ${state.acks.rcla ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-gray-50'}">
-              <input type="checkbox" ${state.acks.rcla ? 'checked' : ''} onchange="updateAck('rcla', this.checked)" class="w-6 h-6 mt-1">
-              <div>
-                <span class="font-bold">I acknowledge the RCLA Notice requirements</span>
-                <p class="text-sm text-gray-600">I understand I must provide 60 days written notice before filing any lawsuit regarding construction defects.</p>
-              </div>
-            </label>
-          `;
-
-        case 'review':
-          return `
-            <div class="contract-section bg-green-50 border-2 border-green-400">
-              <h4 class="font-bold text-lg mb-3 text-green-800">✅ Contract Review Confirmation</h4>
-              <p class="mb-4 text-green-900">Before signing, the Contractor must confirm that they have reviewed ALL sections of this contract with the Owner.</p>
-
-              <div class="bg-white p-4 rounded-lg border">
-                <h5 class="font-bold mb-3">Sections Reviewed:</h5>
-                <div class="grid md:grid-cols-2 gap-2">
-                  ${CONTRACT_SECTIONS.slice(0, -2).map((s, i) => `
-                    <div class="flex items-center gap-2">
-                      <span class="${isSectionComplete(i) ? 'text-green-600' : 'text-gray-400'}">${isSectionComplete(i) ? '✅' : '⬜'}</span>
-                      <span class="${isSectionComplete(i) ? 'text-green-800' : 'text-gray-500'}">${s.title}</span>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>
-
-              <div class="bg-amber-50 p-4 rounded-lg border-2 border-amber-400 mt-4">
-                <p class="font-bold text-amber-800">CONSULT YOUR ATTORNEY:</p>
-                <p class="text-amber-900">This is intended to be a legally binding contract. <strong>READ IT CAREFULLY.</strong> If you do not understand the effect of any part of the Contract Documents, consult your attorney BEFORE signing.</p>
-              </div>
-            </div>
-
-            <label class="flex items-start gap-3 mt-6 p-4 rounded-lg border-2 ${state.acks.contractorReview ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-gray-50'}">
-              <input type="checkbox" ${state.acks.contractorReview ? 'checked' : ''} onchange="updateAck('contractorReview', this.checked)" class="w-6 h-6 mt-1">
-              <div>
-                <span class="font-bold">CONTRACTOR CERTIFICATION: I have reviewed this entire contract with the Owner</span>
-                <p class="text-sm text-gray-600">The Contractor confirms that all sections, terms, fees, warranties, and legal provisions have been explained to and discussed with the Owner.</p>
-              </div>
-            </label>
-          `;
-
+          return renderRCLA(isComplete);
         case 'signatures':
-          return `
-            <div class="bg-blue-50 p-4 rounded-lg mb-6">
-              <p class="font-semibold">By signing below, both parties agree to ALL terms and conditions of this Construction Contract, including:</p>
-              <ul class="list-disc ml-6 mt-2 text-sm">
-                <li>Payment terms, schedule, and late fees</li>
-                <li>Change order fees ($250 per request, $150/hr disruption)</li>
-                <li>Warranty provisions and limitations</li>
-                <li>Mediation and binding arbitration requirements</li>
-                <li>Waiver of jury trial</li>
-                <li>RCLA notice requirements</li>
-              </ul>
-            </div>
-
-            <div class="grid md:grid-cols-2 gap-6">
-              <!-- Owner Signature -->
-              <div id="ownerSigContainer" class="bg-white p-4 rounded-lg border-2 ${state.ownerTypedName && state.ownerSigned ? 'border-green-500' : 'border-gray-300'}">
-                <h4 class="font-bold text-lg mb-3">👤 Owner Signature</h4>
-
-                <label class="block font-semibold mb-1">Type Your Full Legal Name <span class="text-red-500">*</span></label>
-                <input type="text" id="ownerNameInput" value="${state.ownerTypedName}" oninput="updateOwnerName(this.value)"
-                  class="border-2 rounded-lg p-3 w-full text-lg mb-4 ${state.ownerTypedName ? 'border-green-500' : 'border-gray-300'}"
-                  placeholder="Type your full name here">
-
-                <label class="block font-semibold mb-1">Sign Below <span class="text-red-500">*</span></label>
-                <p class="text-sm text-gray-500 mb-2">Use your finger or mouse to sign</p>
-                <canvas id="ownerSig" width="350" height="120" class="signature-pad w-full"></canvas>
-                <button onclick="clearOwnerSig()" class="text-sm text-red-600 mt-2">Clear Signature</button>
-
-                <div class="mt-3 pt-3 border-t">
-                  <p class="text-sm"><strong>Print Name:</strong> <span id="ownerPrintName">${state.ownerTypedName || '________________________'}</span></p>
-                  <p class="text-sm"><strong>Date:</strong> ${today}</p>
-                </div>
-              </div>
-
-              <!-- Contractor Signature -->
-              <div id="contractorSigContainer" class="bg-white p-4 rounded-lg border-2 ${state.contractorTypedName && state.contractorSigned ? 'border-green-500' : 'border-gray-300'}">
-                <h4 class="font-bold text-lg mb-3">🏢 Contractor Signature</h4>
-
-                <label class="block font-semibold mb-1">Contractor Representative Name <span class="text-red-500">*</span></label>
-                <input type="text" id="contractorNameInput" value="${state.contractorTypedName}" oninput="updateContractorName(this.value)"
-                  class="border-2 rounded-lg p-3 w-full text-lg mb-4 ${state.contractorTypedName ? 'border-green-500' : 'border-gray-300'}"
-                  placeholder="Contractor name">
-
-                <label class="block font-semibold mb-1">Sign Below <span class="text-red-500">*</span></label>
-                <p class="text-sm text-gray-500 mb-2">Use your finger or mouse to sign</p>
-                <canvas id="contractorSig" width="350" height="120" class="signature-pad w-full"></canvas>
-                <button onclick="clearContractorSig()" class="text-sm text-red-600 mt-2">Clear Signature</button>
-
-                <div class="mt-3 pt-3 border-t">
-                  <p class="text-sm"><strong>Print Name:</strong> <span id="contractorPrintName">${state.contractorTypedName || '________________________'}</span></p>
-                  <p class="text-sm"><strong>Company:</strong> Burnett Custom Homes, LLC</p>
-                  <p class="text-sm"><strong>Date:</strong> ${today}</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-6 p-4 bg-gray-100 rounded-lg">
-              <h4 class="font-bold mb-2">Contract will be sent to:</h4>
-              <p>📧 <strong>Owner:</strong> ${state.customer.email || '[Enter email in Customer Information]'}</p>
-              <p>📧 <strong>Contractor:</strong> bobby@burnettcustoms.net</p>
-            </div>
-          `;
-
+          return renderSignatures(today, total, deposit, pkg, size);
         default:
-          return '<p>Section content not found.</p>';
+          return '<p>Section not found.</p>';
       }
+    }
+
+    // ==================== SECTION RENDERS ====================
+
+    function renderCustomerInfo(total, pkg, size) {
+      return `
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-semibold mb-1">Full Legal Name <span class="text-red-500">*</span></label>
+            <input type="text" value="${state.customer.name}" oninput="updateCustomer('name', this.value, this)"
+              class="border-2 rounded-lg p-3 w-full text-lg ${state.customer.name ? 'border-[#05c3de]' : 'border-gray-300'}" placeholder="Enter full legal name">
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Phone Number <span class="text-red-500">*</span></label>
+            <input type="tel" value="${state.customer.phone}" oninput="updateCustomer('phone', this.value, this)"
+              class="border-2 rounded-lg p-3 w-full text-lg ${state.customer.phone ? 'border-[#05c3de]' : 'border-gray-300'}" placeholder="(555) 555-5555">
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Email Address <span class="text-red-500">*</span></label>
+            <input type="email" value="${state.customer.email}" oninput="updateCustomer('email', this.value, this)"
+              class="border-2 rounded-lg p-3 w-full text-lg ${state.customer.email ? 'border-[#05c3de]' : 'border-gray-300'}" placeholder="you@email.com">
+            <p class="text-xs text-gray-500 mt-1">Contract copy will be sent here</p>
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Mailing Address <span class="text-red-500">*</span></label>
+            <input type="text" value="${state.customer.address}" oninput="updateCustomer('address', this.value, this)"
+              class="border-2 rounded-lg p-3 w-full text-lg ${state.customer.address ? 'border-[#05c3de]' : 'border-gray-300'}" placeholder="123 Main St, City, TX 77001">
+          </div>
+          <div class="md:col-span-2">
+            <label class="block font-semibold mb-1">Property / Build Site Address <span class="text-red-500">*</span></label>
+            <input type="text" value="${state.customer.propertyAddress}" oninput="updateCustomer('propertyAddress', this.value, this)"
+              class="border-2 rounded-lg p-3 w-full text-lg ${state.customer.propertyAddress ? 'border-[#05c3de]' : 'border-gray-300'}" placeholder="Address where building will be constructed">
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Title (Optional)</label>
+            <input type="text" value="${state.customer.title || ''}" oninput="updateCustomer('title', this.value, this)"
+              class="border-2 rounded-lg p-3 w-full text-lg border-gray-300" placeholder="e.g., Owner, Manager">
+          </div>
+        </div>
+
+        <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+          <h4 class="font-bold mb-2">Contract Summary</h4>
+          <p><strong>Building:</strong> ${pkg.name} - ${size.label}</p>
+          <p><strong>Contract Sum:</strong> $${total.toLocaleString()}</p>
+          <p><strong>Contractor:</strong> Burnett Customs, LLC</p>
+          <p><strong>Address:</strong> 101 Goodwin Avenue, Suite 580, Victoria, TX 77901</p>
+        </div>
+      `;
+    }
+
+    function renderDefinitions(today, isComplete) {
+      return `
+        <div class="contract-section legal-text">
+          <h4 class="font-bold text-lg mb-3">Section 1: DEFINITIONS</h4>
+
+          <p class="mb-3"><strong>"Payment Deadline"</strong> means 2:00 P.M. on the third business day after Contractor's request for payment is received.</p>
+
+          <p class="mb-3"><strong>"Substantial Completion"</strong> or <strong>"Substantially Complete"</strong> means the stage when a certificate of occupancy is issued, or if no certificate is required, when all Improvements are sufficiently complete, in accordance with the Contract Documents, so that Owner may use or occupy the Improvements for the intended purpose. If Owner moves into the Improvements, the Improvements will be deemed to be substantially complete.</p>
+
+          <p class="mb-3"><strong>"Commencement Date"</strong> means the date of Substantial Completion and notice to Owner, but not later than Forty-Five (45) days, unless extended by the terms of the Contract Documents, force majeure delays, or other delays not within Contractor's control.</p>
+
+          <p class="mb-3"><strong>"Contract Documents"</strong> means the residential or commercial construction contract, the Plans, warranty documents, and any other documents governing the Work (collectively, the "Contract").</p>
+
+          <p class="mb-3"><strong>"Improvements"</strong> means the improvements to be constructed on the Property according to the Plans, including a single-family residence or commercial property.</p>
+
+          <p class="mb-3"><strong>"Plans"</strong> means all designed plans and specifications for the Improvements (dated and signed by Owner, authorized party and Contractor).</p>
+
+          <p class="mb-3"><strong>"Work"</strong> means the physical activities, materials, and equipment relating to the construction of the Improvements.</p>
+
+          <p class="mb-3"><strong>"Concealed Conditions"</strong> means preexisting physical conditions situated below the surface of the ground, or concealed or unknown conditions in an existing structure, at variance with the conditions indicated in the Contract Documents.</p>
+        </div>
+        ${renderAcknowledgment('definitions', isComplete, today)}
+      `;
+    }
+
+    function renderChangeOrders(isComplete) {
+      const today = new Date().toLocaleDateString();
+      return `
+        <div class="contract-section legal-text">
+          <h4 class="font-bold text-lg mb-3">Section 4.B: CHANGE ORDERS</h4>
+
+          <p class="mb-3"><strong>(i)</strong> Contractor is under no duty to make any changes in the Plans requested by Owner until a change order is signed by Contractor and Owner or their duly authorized representatives.</p>
+
+          <p class="mb-3"><strong>(ii)</strong> Owner and Contractor, or their duly authorized representatives, must sign a written change order. An e-mail exchange or text message exchange in which the changes are discussed and acknowledged will also satisfy this requirement.</p>
+
+          <p class="mb-3"><strong>(iii)</strong> When Contractor receives a written request for any change, Contractor will present Owner with a proposal including any additional price, markup, and extensions to the projected Completion Date.</p>
+
+          <p class="mb-3"><strong>(iv)</strong> Failure of Owner to approve Contractor's proposal within <strong>five (5) days</strong> after receipt shall constitute a rejection.</p>
+
+          <p class="mb-3"><strong>(v)</strong> Owner shall pay for all work resulting from agreed-upon change orders in cash within five business days after acceptance. This payment shall take place before work commences.</p>
+
+          <p class="mb-3"><strong>(vi)</strong> Contractor is not obligated to proceed with any Work until all amounts have been paid pursuant to a change order.</p>
+
+          <div class="bg-amber-50 border-2 border-amber-500 rounded-lg p-4 mt-4">
+            <p class="font-bold text-amber-800">⚠️ CHANGE ORDER FEES:</p>
+            <p class="text-amber-900 mt-2"><strong>$250.00</strong> charge per Change Order request, due at the time the request is made.</p>
+            <p class="text-amber-900 mt-2">If change order(s) cause a disruption in progress, Owner will be billed <strong>$150.00 per working hour</strong> between 7:00 A.M. - 7:00 P.M. until work resumes.</p>
+          </div>
+        </div>
+        ${renderAcknowledgment('changeOrders', isComplete, today)}
+      `;
+    }
+
+    function renderPlans(isComplete) {
+      const today = new Date().toLocaleDateString();
+      return `
+        <div class="contract-section legal-text">
+          <h4 class="font-bold text-lg mb-3">Section 4.C: PLANS</h4>
+
+          <p class="mb-3">Plans shall be furnished for all projects and signed by Owner and Contractor.</p>
+
+          <p class="mb-3"><strong>(i)</strong> If Owner furnishes the Plans, Owner warrants the sufficiency of the Plans and Contractor may reasonably rely on the accuracy of the Plans. Contractor disclaims all liability for any errors or omissions in Plans furnished by Owner.</p>
+
+          <p class="mb-3"><strong>(ii)</strong> If Contractor furnishes the Plans, Contractor warrants the Plans are in substantial compliance with all applicable laws. Plans prepared by Contractor will be the property of Contractor and may not be used by Owner on any other property.</p>
+
+          <div class="bg-blue-50 border-2 border-blue-500 rounded-lg p-4 mt-4">
+            <p class="font-bold text-[#003057]">📐 PLAN REVISION POLICY:</p>
+            <p class="text-[#01315b] mt-2">Owner has <strong>3 opportunities</strong> to redo/amend/revise the Plans before Work commences at no cost.</p>
+            <p class="text-[#01315b] mt-2">On the 4th revision and every revision thereafter: <strong>$550.00</strong> per revision.</p>
+            <p class="text-[#01315b] mt-2">All requested revisions after work commences shall be a change order.</p>
+          </div>
+
+          <p class="mt-4">Owner agrees that as long as construction of the Improvements reasonably complies with the Contract Documents, minor deviations will be accepted.</p>
+        </div>
+        ${renderAcknowledgment('plans', isComplete, today)}
+      `;
+    }
+
+    function renderConsumerProducts(isComplete) {
+      const today = new Date().toLocaleDateString();
+      return `
+        <div class="contract-section legal-text">
+          <h4 class="font-bold text-lg mb-3">Section 4.D: CONSUMER PRODUCTS</h4>
+
+          <p class="mb-3">Consumer products, appliances, equipment, and components are excluded from Contractor's warranty to the extent individual manufacturers' warranties are passed through Contractor and assigned to Owner.</p>
+
+          <p class="mb-3">Contractor assigns and passes through to Owner the manufacturers' warranties on all consumer products, appliances, equipment, and components.</p>
+
+          <p class="mb-3">In the case of passed-through and received manufacturers' warranties on consumer products, appliances, equipment, and components, <strong>Owner's recourse is directly to the manufacturer</strong>, and Contractor has no responsibility for them, except for problems relating to Contractor's installation and hookup of the items.</p>
+        </div>
+        ${renderAcknowledgment('consumerProducts', isComplete, today)}
+      `;
+    }
+
+    function renderDelays(isComplete) {
+      const today = new Date().toLocaleDateString();
+      return `
+        <div class="contract-section legal-text">
+          <h4 class="font-bold text-lg mb-3">Section 4.E: DELAYS IN PERFORMANCE / FORCE MAJEURE</h4>
+
+          <p class="mb-3">Contractor shall not be liable for damages or delays in performance due to circumstances beyond its reasonable control, including, but not limited to:</p>
+
+          <ul class="list-disc ml-6 mb-3">
+            <li>Strikes or labor disputes</li>
+            <li>Any priority system established by government agencies</li>
+            <li>Weather conditions (including fires, floods, storms, earthquakes, or other acts of God)</li>
+            <li>Supplier delays for similar reasons</li>
+            <li>General availability of materials or labor</li>
+            <li>Government mandated shutdowns</li>
+            <li>War, riots, or acts of public enemy or terrorist</li>
+          </ul>
+
+          <p class="mb-3"><strong>Such events shall NOT constitute grounds for Owner's cancellation/termination of the Contract.</strong> Rather, the Completion Date shall extend accordingly.</p>
+
+          <p class="mb-3">The affected Party shall: (a) notify the other Party as soon as practicable; (b) take reasonable steps to avoid or remove the Force Majeure; and (c) resume performance when and to the extent the Force Majeure is removed.</p>
+        </div>
+        ${renderAcknowledgment('delays', isComplete, today)}
+      `;
+    }
+
+    function renderDraws(total, deposit, isComplete) {
+      const today = new Date().toLocaleDateString();
+      const midPay = getMidPayment();
+      const finalPay = getFinalPayment();
+
+      return `
+        <div class="contract-section legal-text">
+          <h4 class="font-bold text-lg mb-3">Section 4.F & 6: DRAWS & PAYMENT TERMS</h4>
+
+          <p class="mb-4">The Contract Sum of <strong>$${total.toLocaleString()}</strong> will be paid as follows:</p>
+
+          <table class="w-full border-collapse mb-4">
+            <tr class="bg-gray-100"><th class="border p-2 text-left">Draw</th><th class="border p-2 text-left">Milestone</th><th class="border p-2 text-right">Amount</th></tr>
+            <tr><td class="border p-2 font-semibold">1. Deposit</td><td class="border p-2">Upon Contract Signing</td><td class="border p-2 text-right font-bold text-green-600">$${deposit.toLocaleString()} (50%)</td></tr>
+            <tr><td class="border p-2 font-semibold">2. Mid-Construction</td><td class="border p-2">Materials Delivered / Roof Work Begins</td><td class="border p-2 text-right font-bold">$${midPay.toLocaleString()} (25%)</td></tr>
+            <tr><td class="border p-2 font-semibold">3. Final Payment</td><td class="border p-2">Substantial Completion</td><td class="border p-2 text-right font-bold">$${finalPay.toLocaleString()} (25%)</td></tr>
+            <tr class="bg-[#e0f7fa]"><td class="border p-2 font-bold" colspan="2">TOTAL CONTRACT SUM</td><td class="border p-2 text-right font-bold text-green-600 text-xl">$${total.toLocaleString()}</td></tr>
+          </table>
+
+          <div class="bg-red-50 border-2 border-red-500 rounded-lg p-4">
+            <p class="font-bold text-red-800">⚠️ LATE PAYMENT PENALTIES:</p>
+            <p class="text-red-900 mt-2"><strong>Payment Deadline:</strong> 2:00 P.M. on the third business day after Contractor's request.</p>
+            <p class="text-red-900 mt-2">If any Draw is not paid by the Payment Deadline:</p>
+            <ul class="list-disc ml-6 text-red-900">
+              <li><strong>10% late fee</strong> added immediately</li>
+              <li><strong>Additional 10%</strong> added every 72 hours until paid</li>
+            </ul>
+            <p class="text-red-900 mt-2"><strong>Contractor may cease work without breach of Contract</strong> if payment is not received.</p>
+          </div>
+
+          <p class="mt-4">Payments not received within the 30-day period shall bear interest at the rate of <strong>5% per month</strong> until received.</p>
+        </div>
+        ${renderAcknowledgment('draws', isComplete, today)}
+      `;
+    }
+
+    function renderMaterialCosts(isComplete) {
+      const today = new Date().toLocaleDateString();
+      return `
+        <div class="contract-section legal-text">
+          <h4 class="font-bold text-lg mb-3">Section 4.G: MATERIAL COSTS</h4>
+
+          <div class="bg-amber-50 border-2 border-amber-500 rounded-lg p-4">
+            <p class="font-bold text-amber-800">📦 MATERIAL COST PASS-THROUGH:</p>
+            <p class="text-amber-900 mt-2">Contractor shall pass through to Owner <strong>any and all additional price increases of materials cost</strong> occurring after contract signing.</p>
+          </div>
+
+          <p class="mt-4">This provision ensures that market fluctuations in material costs are equitably shared and do not result in Contractor bearing unforeseen expenses beyond the original scope.</p>
+        </div>
+        ${renderAcknowledgment('materialCosts', isComplete, today)}
+      `;
+    }
+
+    function renderContractorResp(isComplete) {
+      const today = new Date().toLocaleDateString();
+      return `
+        <div class="contract-section legal-text">
+          <h4 class="font-bold text-lg mb-3">Section 4.H-V: CONTRACTOR RESPONSIBILITIES & TERMS</h4>
+
+          <p class="mb-3"><strong>Underground Lines (H):</strong> Contractor shall be responsible for checking placement of underground lines. Texas Law requires calling 1-800-545-6005 or 811 before digging.</p>
+
+          <p class="mb-3"><strong>Liability for Products (I):</strong> In no event shall Contractor be liable for consequential, incidental, or special damages relating to products or components, their design, use, or delivery.</p>
+
+          <div class="bg-blue-50 border-2 border-blue-500 rounded-lg p-4 my-4">
+            <p class="font-bold text-[#003057]">💰 CONTRACTOR'S RISK POLICY, DIRT WORK & PUMP TRUCK (J):</p>
+            <p class="text-[#01315b] mt-2">These expenses are at <strong>cost plus 20%</strong> due from Owner.</p>
+            <p class="text-[#01315b]">Payment is due <strong>before the delivery of Foundation Material</strong>.</p>
+          </div>
+
+          <p class="mb-3"><strong>Punch List Items (L):</strong> Any discrepancies of fit, finish, or other punch-list items will be handled after final payment is made and will be considered warranty work.</p>
+
+          <p class="mb-3"><strong>Soil Testing (N):</strong> Owner may request soil testing (Geotechnical Report) at their own expense. Contractor is not responsible for existing soil type or density.</p>
+
+          <p class="mb-3"><strong>Large Equipment (O):</strong> Owner shall provide adequate access to accommodate large and heavy equipment. Contractor is not responsible for ruts or grass damage reasonably incurred.</p>
+
+          <p class="mb-3"><strong>Independent Contractor (P):</strong> Contractor occupies the status of an independent contractor. Subcontractors are also independent contractors.</p>
+
+          <p class="mb-3"><strong>Communication (R):</strong> Any concerns observed by Owner shall be forwarded to Contractor, not subcontractors.</p>
+
+          <p class="mb-3"><strong>Utilities (T):</strong> Owner agrees to provide water and electricity to the property line unless otherwise designated.</p>
+
+          <p class="mb-3"><strong>Signs/Advertising (U):</strong> Contractor may display signage at the jobsite and use photos for promotional purposes.</p>
+        </div>
+        ${renderAcknowledgment('contractorResp', isComplete, today)}
+      `;
+    }
+
+    function renderScope(isComplete) {
+      const today = new Date().toLocaleDateString();
+      return `
+        <div class="contract-section legal-text">
+          <h4 class="font-bold text-lg mb-3">Section 4.K: SCOPE OF CONTRACT</h4>
+
+          <div class="bg-blue-50 border-2 border-blue-500 rounded-lg p-4">
+            <p class="font-bold text-[#003057]">📏 CONTRACT SCOPE:</p>
+            <p class="text-[#01315b] mt-2 text-lg">This Contract Agreement covers Improvements only <strong>from drip edge to drip edge</strong>.</p>
+          </div>
+
+          <p class="mt-4">This means the Contractor's scope of work is limited to the building structure itself, measured from the outer edges of the roof overhang (drip edge). Work outside this area (such as landscaping, fencing, driveways beyond the concrete apron if included, or utility connections beyond the property line) is not included unless specifically stated in the Contract Documents.</p>
+        </div>
+        ${renderAcknowledgment('scope', isComplete, today)}
+      `;
+    }
+
+    function renderEarlyOccupation(isComplete) {
+      const today = new Date().toLocaleDateString();
+      return `
+        <div class="contract-section legal-text">
+          <h4 class="font-bold text-lg mb-3">Section 4.M: EARLY USE OR OCCUPATION OF IMPROVEMENTS</h4>
+
+          <div class="bg-red-50 border-2 border-red-500 rounded-lg p-4">
+            <p class="font-bold text-red-800">🏠 IMPORTANT - EARLY OCCUPATION:</p>
+            <p class="text-red-900 mt-2">Unless otherwise agreed in writing by the parties or their authorized agents:</p>
+            <p class="text-red-900 mt-2 text-lg font-bold">Premature Occupation or Use of Improvements signifies satisfaction of all work and requires IMMEDIATE PAYMENT of the Contract in full.</p>
+          </div>
+
+          <p class="mt-4">Owner's acceptance of possession will be conclusively presumed to constitute Owner's acceptance of the Improvements as Substantially Complete and inhabitable.</p>
+        </div>
+        ${renderAcknowledgment('earlyOccupation', isComplete, today)}
+      `;
+    }
+
+    function renderWarranties(isComplete) {
+      const today = new Date().toLocaleDateString();
+      return `
+        <div class="contract-section legal-text">
+          <h4 class="font-bold text-lg mb-3">Section E: WARRANTIES</h4>
+
+          <p class="mb-3">Contractor warrants that its performance of work meets the residential construction warranties adopted by the Texas Residential Construction Commission. The warranties extend for the following periods after Substantial Completion:</p>
+
+          <div class="grid md:grid-cols-2 gap-4 my-4">
+            <div class="bg-[#e0f7fa] p-4 rounded-lg text-center border-2 border-[#05c3de]">
+              <div class="text-3xl font-bold text-green-600">1 Year</div>
+              <div class="font-semibold">Workmanship & Materials</div>
+            </div>
+            <div class="bg-[#e0f7fa] p-4 rounded-lg text-center border-2 border-[#05c3de]">
+              <div class="text-3xl font-bold text-green-600">1 Year</div>
+              <div class="font-semibold">Plumbing, Electrical, HVAC Systems</div>
+            </div>
+            <div class="bg-[#e0f7fa] p-4 rounded-lg text-center border-2 border-[#05c3de] md:col-span-2">
+              <div class="text-3xl font-bold text-green-600">1 Year</div>
+              <div class="font-semibold">Major Structural Components</div>
+            </div>
+          </div>
+
+          <p class="mb-3">Contractor represents and warrants that Contractor shall perform the Services in a professional manner with the standard of care, skill, and diligence normally provided by a professional Person in the performance of similar services.</p>
+        </div>
+        ${renderAcknowledgment('warranties', isComplete, today)}
+      `;
+    }
+
+    function renderWarrantyLimits(isComplete) {
+      const today = new Date().toLocaleDateString();
+      return `
+        <div class="contract-section legal-text bg-amber-50 border-2 border-amber-500">
+          <h4 class="font-bold text-lg mb-3 text-amber-800">Section 5.C-D: WARRANTY LIMITATIONS</h4>
+
+          <p class="mb-3 font-semibold text-amber-900">IMPORTANT - READ CAREFULLY:</p>
+
+          <div class="bg-white p-4 rounded-lg mb-4">
+            <p class="mb-3"><strong>ALTERATION WAIVER:</strong> It is expressly understood and agreed that any alteration(s) concerning warranted matters by Owner, or any other person or entity, results in Owner <strong>WAIVING</strong> any warranties through Contractor.</p>
+          </div>
+
+          <div class="bg-red-100 p-4 rounded-lg border-2 border-red-500">
+            <p class="font-bold text-red-800 mb-2">EXCLUSIVE WARRANTIES (5.C):</p>
+            <p class="text-red-900">EXCEPT FOR THE FOREGOING WARRANTIES AND ANY WARRANTIES SET FORTH IN THIS AGREEMENT OR THE STATEMENT OF WORK, <strong>NO OTHER WARRANTIES, WRITTEN OR ORAL, STATUTORY, EXPRESS, OR IMPLIED, SHALL APPLY.</strong></p>
+
+            <p class="font-bold text-red-800 mt-4 mb-2">IMPLIED WARRANTY WAIVER (5.D):</p>
+            <p class="text-red-900">These express warranties are given <strong>IN LIEU OF</strong> the implied warranty of good and workmanlike construction and <strong>IN LIEU OF</strong> the warranty of merchantability or fitness for any particular purpose, which are <strong>DISCLAIMED AND WAIVED</strong>.</p>
+          </div>
+        </div>
+        ${renderAcknowledgment('warrantyLimits', isComplete, today)}
+      `;
+    }
+
+    function renderInsurance(isComplete) {
+      const today = new Date().toLocaleDateString();
+      return `
+        <div class="contract-section legal-text">
+          <h4 class="font-bold text-lg mb-3">Section 7: INSURANCE</h4>
+
+          <p class="mb-3"><strong>(A)</strong> Contractor shall secure and maintain <strong>Commercial General Liability Insurance</strong> during the performance of its obligations under a Statement of Work.</p>
+
+          <p class="mb-3"><strong>(B)</strong> Contractor agrees to provide Owner a copy of <strong>Contractor's Risk Insurance Policy</strong> for the Property with a coverage amount equal to or greater than the Contract Sum.</p>
+
+          <p class="mb-3"><strong>(C)</strong> Contractor shall obtain contractor's risk insurance coverage for casualty loss and public liability in reasonable amounts, to protect Contractor and Owner.</p>
+        </div>
+        ${renderAcknowledgment('insurance', isComplete, today)}
+      `;
+    }
+
+    function renderConfidentiality(isComplete) {
+      const today = new Date().toLocaleDateString();
+      return `
+        <div class="contract-section legal-text">
+          <h4 class="font-bold text-lg mb-3">Section 9: CONFIDENTIALITY</h4>
+
+          <p class="mb-3">"Confidential Information" includes the Terms of this Agreement, and with respect to either Party: (i) non-public documents designated as "Proprietary" or "Confidential" and (ii) business plans, customer information, engineering, and operating and technical data.</p>
+
+          <p class="mb-3">The Receiving Party shall:</p>
+          <ul class="list-disc ml-6 mb-3">
+            <li>Keep Confidential Information in strict confidence</li>
+            <li>Not use, publish or disclose to Third Parties without prior written consent</li>
+            <li>Upon request, promptly return or destroy all written copies</li>
+          </ul>
+
+          <p class="mb-3">Confidential Information may be disclosed to professional advisors, contractors, and subcontractors who have a need to know, provided they agree to maintain confidentiality.</p>
+        </div>
+        ${renderAcknowledgment('confidentiality', isComplete, today)}
+      `;
+    }
+
+    function renderDefaultLiability(isComplete) {
+      const today = new Date().toLocaleDateString();
+      return `
+        <div class="contract-section legal-text">
+          <h4 class="font-bold text-lg mb-3">Section 10: DEFAULT & LIABILITY LIMITATIONS</h4>
+
+          <p class="mb-3"><strong>Default (10.A):</strong> A Party shall be in default if such Party breaches any Term and does not cure such breach within <strong>15 days</strong> after notice (or 30 days if not capable of being cured within 15 days and diligently working to effect a cure).</p>
+
+          <div class="bg-blue-50 border-2 border-blue-500 rounded-lg p-4 my-4">
+            <p class="font-bold text-[#003057]">⚖️ LIMITATION ON LIABILITY (10.B):</p>
+            <p class="text-[#01315b] mt-2 font-bold">NEITHER PARTY SHALL BE LIABLE TO THE OTHER FOR SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES.</p>
+          </div>
+
+          <p class="mb-3"><strong>Indemnification (10.C):</strong> Contractor agrees to defend, indemnify and hold harmless Owner from third party claims arising from Contractor's negligent acts, willful misconduct, or breach of this Agreement.</p>
+
+          <div class="bg-amber-50 border-2 border-amber-500 rounded-lg p-4 mt-4">
+            <p class="font-bold text-amber-800">⏰ TIME LIMITATIONS FOR CLAIMS:</p>
+            <p class="text-amber-900 mt-2">Any action or claim arising from this Contract, the Work, and/or Improvements is <strong>barred unless brought within 2 years and 1 day</strong> from the date the cause of action accrues.</p>
+          </div>
+        </div>
+        ${renderAcknowledgment('defaultLiability', isComplete, today)}
+      `;
+    }
+
+    function renderArbitration(isComplete) {
+      const today = new Date().toLocaleDateString();
+      return `
+        <div class="contract-section legal-text bg-blue-50 border-2 border-blue-500">
+          <h4 class="font-bold text-lg mb-3 text-[#003057]">Section 12.D: MEDIATION AND BINDING ARBITRATION</h4>
+
+          <p class="mb-3 font-semibold text-[#01315b]">IMPORTANT - READ CAREFULLY:</p>
+
+          <p class="mb-3">The parties agree that any dispute, including but not limited to:</p>
+          <ul class="list-disc ml-6 mb-3">
+            <li>Controversies arising under or relating to this Contract</li>
+            <li>Claims arising by virtue of representations, omissions, promises or warranties</li>
+            <li>Personal injury or property damage alleged on the Property</li>
+          </ul>
+
+          <div class="bg-white p-4 rounded-lg border-2 border-blue-600 mb-4">
+            <p class="font-bold text-[#003057]">SHALL FIRST BE SUBMITTED TO MEDIATION</p>
+            <p class="text-[#01315b] mt-2">and, if not settled during mediation,</p>
+            <p class="font-bold text-[#003057] mt-2">SHALL THEREAFTER BE SUBMITTED TO BINDING ARBITRATION</p>
+            <p class="text-[#01315b] mt-2">as provided by the <strong>Federal Arbitration Act (9 U.S.C. §1 et seq.)</strong></p>
+            <p class="font-bold text-red-700 mt-2 text-lg">AND NOT BY OR IN A COURT OF LAW.</p>
+          </div>
+
+          <p class="mb-3"><strong>In any arbitration proceeding:</strong></p>
+          <ul class="list-disc ml-6 mb-3">
+            <li>All applicable Federal and State law (including Chapter 27 of the Texas Property Code) shall apply</li>
+            <li>The arbitration shall be conducted in the same county as the Property</li>
+            <li>The arbitrator may award to the prevailing party all or any portion of costs and fees</li>
+            <li>Any award shall be final and binding, and judgment may be entered in any court having jurisdiction</li>
+          </ul>
+
+          <p class="font-semibold text-[#01315b]">These rights and obligations survive termination, default, or Substantial Completion of this Contract.</p>
+        </div>
+        ${renderAcknowledgment('arbitration', isComplete, today)}
+      `;
+    }
+
+    function renderJuryWaiver(isComplete) {
+      const today = new Date().toLocaleDateString();
+      return `
+        <div class="contract-section legal-text bg-red-50 border-2 border-red-500">
+          <h4 class="font-bold text-lg mb-3 text-red-800">Section 12.C & F: WAIVER OF TRIAL BY JURY</h4>
+
+          <p class="mb-3 font-semibold text-red-900">CRITICAL PROVISION - READ CAREFULLY:</p>
+
+          <div class="bg-white p-4 rounded-lg border-2 border-red-600 mb-4">
+            <p class="text-red-900">In the event that it is determined that the arbitration provisions are not enforceable, the parties stipulate and agree that any and all disputes between them shall be resolved by a court of competent jurisdiction in the county where the Property is located <strong>WITHOUT THE USE OF A JURY</strong>.</p>
+
+            <p class="font-bold text-red-800 mt-4 text-xl">THE RIGHT TO A TRIAL BY JURY IS HEREBY EXPRESSLY WAIVED BY OWNER AND CONTRACTOR.</p>
+
+            <p class="text-red-900 mt-4">THE PARTIES HEREBY WAIVE THE RIGHT TO TRIAL BY JURY IN ANY LITIGATION ARISING OUT OF OR RELATING TO THIS AGREEMENT.</p>
+          </div>
+
+          <p class="text-red-900">The rights and obligations set forth in this paragraph shall survive: (1) the termination of this Contract by either party; (2) the default of this Contract by either party; or (3) Substantial Completion and payment in full of the Total Contract Price.</p>
+        </div>
+        ${renderAcknowledgment('juryWaiver', isComplete, today)}
+      `;
+    }
+
+    function renderRCLA(isComplete) {
+      const today = new Date().toLocaleDateString();
+      return `
+        <div class="contract-section legal-text bg-amber-50 border-2 border-amber-500">
+          <h4 class="font-bold text-lg mb-3 text-amber-800">RESIDENTIAL CONSTRUCTION LIABILITY ACT (RCLA) NOTICE</h4>
+
+          <p class="mb-3 text-amber-900">This contract is subject to <strong>Chapter 27 of the Texas Property Code</strong>. The provisions of that chapter may affect your right to recover damages arising from a construction defect.</p>
+
+          <p class="mb-3 text-amber-900">If you have a complaint concerning a construction defect and that defect has not been corrected as may be required by law or by contract:</p>
+
+          <div class="bg-white p-4 rounded-lg border-2 border-amber-600 my-4">
+            <p class="font-bold text-amber-800">YOU MUST PROVIDE WRITTEN NOTICE:</p>
+            <ul class="list-disc ml-6 text-amber-900 mt-2">
+              <li>To the Contractor by <strong>certified mail, return receipt requested</strong></li>
+              <li><strong>Not later than the 60th day BEFORE</strong> the date you file suit or initiate arbitration</li>
+              <li>The notice must refer to <strong>Chapter 27 of the Texas Property Code</strong></li>
+              <li>The notice must <strong>describe the construction defect</strong></li>
+            </ul>
+          </div>
+
+          <p class="text-amber-900">If requested by the Contractor, you must provide the Contractor an opportunity to inspect and cure the defect as provided by Section 27.004 of the Texas Property Code.</p>
+
+          <div class="bg-red-100 p-4 rounded-lg border-2 border-red-500 mt-4">
+            <p class="font-bold text-red-800">⚠️ IMPORTANT NOTICE:</p>
+            <p class="text-red-900 mt-2">You and your contractor are responsible for meeting the terms and conditions of this contract. If you sign this contract and you fail to meet the terms and conditions of this contract, <strong>you may lose your legal ownership rights in your home</strong>.</p>
+            <p class="font-bold text-red-900 mt-2">KNOW YOUR RIGHTS AND DUTIES UNDER THE LAW.</p>
+          </div>
+
+          <div class="bg-blue-100 p-4 rounded-lg border-2 border-blue-500 mt-4">
+            <p class="font-bold text-[#003057]">📋 CONSULT YOUR ATTORNEY:</p>
+            <p class="text-[#01315b] mt-2">This is intended to be a legally binding contract. <strong>READ IT CAREFULLY.</strong> If you do not understand the effect of any part of the Contract Documents, consult your attorney BEFORE signing.</p>
+          </div>
+        </div>
+        ${renderAcknowledgment('rcla', isComplete, today)}
+      `;
+    }
+
+    function renderSignatures(today, total, deposit, pkg, size) {
+      return `
+        <div class="bg-blue-50 p-4 rounded-lg mb-6">
+          <p class="font-semibold">By signing below, both parties agree to ALL terms and conditions of this Master Service Agreement, including:</p>
+          <ul class="list-disc ml-6 mt-2 text-sm">
+            <li>Payment terms, schedule, and late fees (10% + 10% every 72 hours)</li>
+            <li>Change order fees ($250 per request, $150/hr disruption)</li>
+            <li>Plan revision fees ($550 after 3 free revisions)</li>
+            <li>Material cost pass-through provisions</li>
+            <li>Contractor responsibilities and scope limitations</li>
+            <li>1-Year warranty provisions and limitations</li>
+            <li>Implied warranty waiver</li>
+            <li>Mediation and binding arbitration requirements</li>
+            <li>Express waiver of jury trial</li>
+            <li>RCLA notice requirements (60-day certified mail)</li>
+            <li>2-year + 1-day limitation on claims</li>
+          </ul>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6 mb-6">
+          <!-- Owner Signature -->
+          <div id="ownerSigContainer" class="bg-white p-4 rounded-lg border-2 ${state.ownerTypedName && state.ownerSigned ? 'border-[#05c3de]' : 'border-gray-300'}">
+            <h4 class="font-bold text-lg mb-3">👤 OWNER</h4>
+
+            <div class="mb-3">
+              <label class="block font-semibold mb-1">Print Name <span class="text-red-500">*</span></label>
+              <input type="text" id="ownerNameInput" value="${state.ownerTypedName || state.customer.name}" oninput="updateOwnerName(this.value)"
+                class="border-2 rounded-lg p-2 w-full ${state.ownerTypedName ? 'border-[#05c3de]' : 'border-gray-300'}"
+                placeholder="Full Legal Name">
+            </div>
+
+            <div class="mb-3">
+              <label class="block font-semibold mb-1">Title</label>
+              <input type="text" value="${state.customer.title || ''}" readonly
+                class="border-2 rounded-lg p-2 w-full bg-gray-50 border-gray-300">
+            </div>
+
+            <label class="block font-semibold mb-1">Signature <span class="text-red-500">*</span></label>
+            <p class="text-xs text-gray-500 mb-2">Sign with finger or mouse</p>
+            <canvas id="ownerSig" width="320" height="100" class="signature-pad w-full"></canvas>
+            <button onclick="clearOwnerSig()" class="text-sm text-red-600 mt-1">Clear Signature</button>
+
+            <div class="mt-3 pt-3 border-t text-sm">
+              <p><strong>Date:</strong> ${today}</p>
+            </div>
+          </div>
+
+          <!-- Contractor Signature -->
+          <div id="contractorSigContainer" class="bg-white p-4 rounded-lg border-2 ${state.contractorTypedName && state.contractorSigned ? 'border-[#05c3de]' : 'border-gray-300'}">
+            <h4 class="font-bold text-lg mb-3">🏢 CONTRACTOR</h4>
+
+            <div class="mb-3">
+              <label class="block font-semibold mb-1">Print Name <span class="text-red-500">*</span></label>
+              <input type="text" id="contractorNameInput" value="${state.contractorTypedName}" oninput="updateContractorName(this.value)"
+                class="border-2 rounded-lg p-2 w-full ${state.contractorTypedName ? 'border-[#05c3de]' : 'border-gray-300'}">
+            </div>
+
+            <div class="mb-3">
+              <label class="block font-semibold mb-1">Title</label>
+              <input type="text" value="CEO" readonly
+                class="border-2 rounded-lg p-2 w-full bg-gray-50 border-gray-300">
+            </div>
+
+            <label class="block font-semibold mb-1">Signature <span class="text-red-500">*</span></label>
+            <p class="text-xs text-gray-500 mb-2">Sign with finger or mouse</p>
+            <canvas id="contractorSig" width="320" height="100" class="signature-pad w-full"></canvas>
+            <button onclick="clearContractorSig()" class="text-sm text-red-600 mt-1">Clear Signature</button>
+
+            <div class="mt-3 pt-3 border-t text-sm">
+              <p><strong>Company:</strong> Burnett Customs, LLC</p>
+              <p><strong>Date:</strong> ${today}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Section -->
+        <div class="bg-[#e0f7fa] p-4 rounded-lg border-2 border-[#05c3de] mb-4">
+          <h4 class="font-bold text-lg mb-3 text-green-800">💳 DEPOSIT PAYMENT</h4>
+
+          <div class="grid md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <p class="text-lg">Contract Sum: <strong>$${total.toLocaleString()}</strong></p>
+              <p class="text-2xl font-bold text-green-700">Deposit Due: $${deposit.toLocaleString()}</p>
+              <p class="text-sm text-gray-600">(50% due at signing)</p>
+            </div>
+            <div>
+              <label class="block font-semibold mb-2">Payment Method <span class="text-red-500">*</span></label>
+              <select id="paymentMethod" onchange="updatePaymentMethod(this.value)" class="border-2 rounded-lg p-3 w-full ${state.paymentMethod ? 'border-[#05c3de]' : 'border-gray-300'}">
+                <option value="">Select payment method...</option>
+                <option value="cash" ${state.paymentMethod === 'cash' ? 'selected' : ''}>Cash</option>
+                <option value="check" ${state.paymentMethod === 'check' ? 'selected' : ''}>Check</option>
+                <option value="card" ${state.paymentMethod === 'card' ? 'selected' : ''}>Credit/Debit Card</option>
+                <option value="financing" ${state.paymentMethod === 'financing' ? 'selected' : ''}>Financing (Pending Approval)</option>
+                <option value="ach" ${state.paymentMethod === 'ach' ? 'selected' : ''}>ACH/Wire Transfer</option>
+              </select>
+            </div>
+          </div>
+
+          ${state.paymentMethod === 'check' ? `
+            <div class="mt-3">
+              <label class="block font-semibold mb-1">Check Number</label>
+              <input type="text" value="${state.paymentReference}" oninput="state.paymentReference = this.value"
+                class="border-2 rounded-lg p-2 w-full border-gray-300" placeholder="Enter check number">
+            </div>
+          ` : ''}
+
+          ${state.paymentMethod === 'card' ? `
+            <div class="mt-3 p-3 bg-blue-100 rounded-lg">
+              <p class="text-[#003057]">💳 Card payment will be processed separately. Contractor will collect card information securely.</p>
+            </div>
+          ` : ''}
+
+          ${state.paymentMethod === 'financing' ? `
+            <div class="mt-3 p-3 bg-amber-100 rounded-lg">
+              <p class="text-amber-800">📋 Financing subject to approval. Contract contingent upon financing approval.</p>
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="p-4 bg-gray-100 rounded-lg">
+          <h4 class="font-bold mb-2">Contract will be sent to:</h4>
+          <p>📧 <strong>Owner:</strong> ${state.customer.email || '[Complete customer information]'}</p>
+          <p>📧 <strong>Contractor:</strong> bobby@burnettcustoms.net</p>
+        </div>
+      `;
+    }
+
+    // ==================== ACKNOWLEDGMENT BLOCK ====================
+    function renderAcknowledgment(sectionId, isComplete, today) {
+      const ack = state.sections[sectionId];
+      return `
+        <div class="section-ack ${isComplete ? 'complete' : ''}" id="ack-${sectionId}">
+          <div class="flex items-start gap-3 mb-4">
+            <input type="checkbox" id="check-${sectionId}" ${ack?.checked ? 'checked' : ''}
+              onchange="updateSectionCheck('${sectionId}', this.checked)"
+              class="w-6 h-6 mt-1 cursor-pointer">
+            <label for="check-${sectionId}" class="cursor-pointer">
+              <span class="font-bold">I have read and understand the above section</span>
+              <p class="text-sm text-gray-600">By checking this box, I acknowledge that I have read, understand, and agree to the terms in this section.</p>
+            </label>
+          </div>
+
+          <div class="flex items-center gap-4 flex-wrap">
+            <div>
+              <label class="block font-semibold mb-1 text-sm">Initial Here <span class="text-red-500">*</span></label>
+              <canvas id="initials-${sectionId}" width="120" height="50" class="initials-pad"></canvas>
+              <button onclick="clearInitials('${sectionId}')" class="text-xs text-red-600 block mt-1">Clear</button>
+            </div>
+            <div class="text-sm">
+              <p><strong>Print Name:</strong> ${state.customer.name || '________________'}</p>
+              <p><strong>Date:</strong> ${today}</p>
+            </div>
+          </div>
+        </div>
+      `;
     }
 
     // ==================== ACTIONS ====================
@@ -861,45 +1266,74 @@
     function toggleAddon(id) { state.addons[id] = !state.addons[id]; if (!state.quantities[id]) state.quantities[id] = 1; render(); }
     function updateQty(id, delta) { state.quantities[id] = Math.max(1, (state.quantities[id] || 1) + delta); render(); }
 
-    // Update customer field WITHOUT re-rendering (to preserve input focus)
     function updateCustomer(field, value, inputElement) {
       state.customer[field] = value;
-      // Update border color directly instead of re-rendering
       if (inputElement) {
-        inputElement.classList.remove('border-gray-300', 'border-green-500');
-        inputElement.classList.add(value ? 'border-green-500' : 'border-gray-300');
+        inputElement.classList.remove('border-gray-300', 'border-[#05c3de]');
+        inputElement.classList.add(value ? 'border-[#05c3de]' : 'border-gray-300');
       }
-      // Update navigation buttons
       updateNavigationState();
     }
 
-    // Update navigation buttons without full re-render
     function updateNavigationState() {
       const currentSection = CONTRACT_SECTIONS[state.contractStep];
       const canProceed = canProceedFromSection(currentSection.id);
 
-      // Find the Next Section button
       const nextBtn = document.getElementById('nextSectionBtn');
       if (nextBtn) {
         nextBtn.disabled = !canProceed;
-        nextBtn.className = `py-3 px-8 rounded-xl font-semibold ${canProceed ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`;
+        nextBtn.className = `py-3 px-6 rounded-xl font-semibold ${canProceed ? 'btn-primary text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`;
       }
 
-      // Update warning message
       const warningMsg = document.getElementById('validationWarning');
       if (warningMsg) {
         warningMsg.style.display = canProceed ? 'none' : 'block';
       }
     }
 
-    function updateAck(field, value) { state.acks[field] = value; render(); }
+    function updateSectionCheck(sectionId, checked) {
+      if (!state.sections[sectionId]) {
+        state.sections[sectionId] = { checked: false, initialed: false };
+      }
+      state.sections[sectionId].checked = checked;
+      updateAckStyle(sectionId);
+      updateNavigationState();
+    }
+
+    function updateSectionInitials(sectionId, initialed) {
+      if (!state.sections[sectionId]) {
+        state.sections[sectionId] = { checked: false, initialed: false };
+      }
+      state.sections[sectionId].initialed = initialed;
+      updateAckStyle(sectionId);
+      updateNavigationState();
+    }
+
+    function updateAckStyle(sectionId) {
+      const ack = state.sections[sectionId];
+      const container = document.getElementById(`ack-${sectionId}`);
+      if (container) {
+        if (ack && ack.checked && ack.initialed) {
+          container.classList.add('complete');
+        } else {
+          container.classList.remove('complete');
+        }
+      }
+    }
+
+    function clearInitials(sectionId) {
+      if (initialsPads[sectionId]) {
+        initialsPads[sectionId].clear();
+        updateSectionInitials(sectionId, false);
+      }
+    }
 
     function prevQuoteStep() { if (state.quoteStep > 0) { state.quoteStep--; render(); } }
     function nextQuoteStep() {
       if (state.quoteStep < 2) {
         state.quoteStep++;
       } else {
-        state.quoteStep = 3; // Move to contract flow
+        state.quoteStep = 3;
       }
       render();
       window.scrollTo(0, 0);
@@ -925,6 +1359,42 @@
       }
     }
 
+    function initializePads(sectionId) {
+      // Initialize initials pad for acknowledgment sections
+      if (sectionId !== 'info' && sectionId !== 'signatures') {
+        const initialsCanvas = document.getElementById(`initials-${sectionId}`);
+        if (initialsCanvas && !initialsPads[sectionId]) {
+          initialsPads[sectionId] = new SignaturePad(initialsCanvas, (signed) => {
+            updateSectionInitials(sectionId, signed);
+          }, true);
+        }
+      }
+
+      // Initialize signature pads for signatures section
+      if (sectionId === 'signatures') {
+        const ownerCanvas = document.getElementById('ownerSig');
+        const contractorCanvas = document.getElementById('contractorSig');
+
+        if (ownerCanvas && !window.ownerPad) {
+          window.ownerPad = new SignaturePad(ownerCanvas, (signed) => {
+            state.ownerSigned = signed;
+            updateSignatureStatus();
+          });
+        }
+        if (contractorCanvas && !window.contractorPad) {
+          window.contractorPad = new SignaturePad(contractorCanvas, (signed) => {
+            state.contractorSigned = signed;
+            updateSignatureStatus();
+          });
+        }
+
+        // Pre-fill owner name if empty
+        if (!state.ownerTypedName && state.customer.name) {
+          state.ownerTypedName = state.customer.name;
+        }
+      }
+    }
+
     function clearOwnerSig() {
       if (window.ownerPad) {
         window.ownerPad.clear();
@@ -941,66 +1411,55 @@
       }
     }
 
-    // Update owner typed name and refresh display
-    function updateOwnerName(value, inputElement) {
+    function updateOwnerName(value) {
       state.ownerTypedName = value;
-      // Update the Print Name display
-      const printNameEl = document.getElementById('ownerPrintName');
-      if (printNameEl) {
-        printNameEl.textContent = value || '________________________';
-      }
-      // Update input border
-      if (inputElement) {
-        inputElement.classList.remove('border-gray-300', 'border-green-500');
-        inputElement.classList.add(value ? 'border-green-500' : 'border-gray-300');
-      }
-      // Update container border
-      const container = document.getElementById('ownerSigContainer');
-      if (container) {
-        container.classList.remove('border-gray-300', 'border-green-500');
-        container.classList.add((value && state.ownerSigned) ? 'border-green-500' : 'border-gray-300');
+      const input = document.getElementById('ownerNameInput');
+      if (input) {
+        input.classList.remove('border-gray-300', 'border-[#05c3de]');
+        input.classList.add(value ? 'border-[#05c3de]' : 'border-gray-300');
       }
       updateSignatureStatus();
     }
 
-    // Update contractor typed name and refresh display
-    function updateContractorName(value, inputElement) {
+    function updateContractorName(value) {
       state.contractorTypedName = value;
-      // Update the Print Name display
-      const printNameEl = document.getElementById('contractorPrintName');
-      if (printNameEl) {
-        printNameEl.textContent = value || '________________________';
-      }
-      // Update input border
-      if (inputElement) {
-        inputElement.classList.remove('border-gray-300', 'border-green-500');
-        inputElement.classList.add(value ? 'border-green-500' : 'border-gray-300');
-      }
-      // Update container border
-      const container = document.getElementById('contractorSigContainer');
-      if (container) {
-        container.classList.remove('border-gray-300', 'border-green-500');
-        container.classList.add((value && state.contractorSigned) ? 'border-green-500' : 'border-gray-300');
+      const input = document.getElementById('contractorNameInput');
+      if (input) {
+        input.classList.remove('border-gray-300', 'border-[#05c3de]');
+        input.classList.add(value ? 'border-[#05c3de]' : 'border-gray-300');
       }
       updateSignatureStatus();
+    }
+
+    function updatePaymentMethod(value) {
+      state.paymentMethod = value;
+      const select = document.getElementById('paymentMethod');
+      if (select) {
+        select.classList.remove('border-gray-300', 'border-[#05c3de]');
+        select.classList.add(value ? 'border-[#05c3de]' : 'border-gray-300');
+      }
+      render(); // Re-render to show conditional fields
     }
 
     function updateSignatureStatus() {
-      // Update button states
-      const navButtons = document.querySelector('.no-print');
-      if (navButtons) {
-        const canProceed = canProceedFromSection('signatures');
-        const sendBtn = navButtons.querySelector('button:last-child');
-        if (sendBtn && sendBtn.textContent.includes('Send')) {
-          sendBtn.disabled = !canProceed || state.sending;
-          sendBtn.className = `py-3 px-8 rounded-xl font-semibold ${canProceed && !state.sending ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`;
-        }
+      const ownerContainer = document.getElementById('ownerSigContainer');
+      const contractorContainer = document.getElementById('contractorSigContainer');
+
+      if (ownerContainer) {
+        ownerContainer.classList.remove('border-gray-300', 'border-[#05c3de]');
+        ownerContainer.classList.add((state.ownerTypedName && state.ownerSigned) ? 'border-[#05c3de]' : 'border-gray-300');
       }
+      if (contractorContainer) {
+        contractorContainer.classList.remove('border-gray-300', 'border-[#05c3de]');
+        contractorContainer.classList.add((state.contractorTypedName && state.contractorSigned) ? 'border-[#05c3de]' : 'border-gray-300');
+      }
+
+      updateNavigationState();
     }
 
     async function sendContract() {
       if (!canProceedFromSection('signatures')) {
-        alert('Please complete all required signatures before sending.');
+        alert('Please complete all required signatures and select a payment method.');
         return;
       }
 
@@ -1008,74 +1467,95 @@
       state.sendError = null;
       render();
 
-      // Build contract summary
       const pkg = PACKAGES[state.level];
       const size = pkg.sizes[state.size];
       const total = getTotal();
       const today = new Date().toLocaleDateString();
 
       const contractSummary = `
-BURNETT CUSTOM HOMES, LLC
-CONSTRUCTION CONTRACT SUMMARY
-============================
+BURNETT CUSTOMS, LLC
+MASTER SERVICE AGREEMENT - EXECUTED CONTRACT
+=============================================
 
 Contract Date: ${today}
 
 PARTIES:
-Owner: ${state.customer.name}
+--------
+OWNER:
+Name: ${state.ownerTypedName}
 Address: ${state.customer.address}
 Email: ${state.customer.email}
 Phone: ${state.customer.phone}
 Property: ${state.customer.propertyAddress}
+${state.customer.title ? `Title: ${state.customer.title}` : ''}
 
-Contractor: Burnett Custom Homes, LLC
-Address: 5416 SW Moody St., Victoria, TX 77905
+CONTRACTOR:
+Burnett Customs, LLC
+101 Goodwin Avenue, Suite 580
+Victoria, TX 77901
+Phone: 361-894-3740
+Representative: ${state.contractorTypedName}, CEO
 
 PROJECT:
-${pkg.name} - ${pkg.desc}
+--------
+Building: ${pkg.name} - ${pkg.desc}
 Size: ${size.label}
 Contract Sum: $${total.toLocaleString()}
 
-PAYMENT SCHEDULE:
-- Deposit (50%): $${getDeposit().toLocaleString()} - Due at signing
-- Mid-Construction (25%): $${getMidPayment().toLocaleString()} - Materials delivered
-- Final (25%): $${getFinalPayment().toLocaleString()} - Substantial completion
+PAYMENT:
+--------
+Deposit (50%): $${getDeposit().toLocaleString()} - Due at signing
+Mid-Construction (25%): $${getMidPayment().toLocaleString()} - Materials delivered
+Final (25%): $${getFinalPayment().toLocaleString()} - Substantial completion
 
-ACKNOWLEDGMENTS RECEIVED:
-✓ Change Orders ($250 fee, $150/hr disruption)
+Payment Method: ${state.paymentMethod ? state.paymentMethod.toUpperCase() : 'Not specified'}
+${state.paymentReference ? `Reference: ${state.paymentReference}` : ''}
+
+ACKNOWLEDGED SECTIONS:
+---------------------
+All sections have been read, understood, and initialed:
+✓ Definitions
+✓ Change Orders ($250/request, $150/hr disruption)
+✓ Plans (3 free revisions, $550 thereafter)
+✓ Consumer Products
 ✓ Delays & Force Majeure
-✓ Payment Terms & Late Fees
-✓ Warranty Terms & Limitations
-✓ Binding Arbitration Agreement
-✓ Jury Trial Waiver
-✓ RCLA Notice Requirements
-✓ Contractor Review Certification
+✓ Draws & Payment Terms (10% + 10%/72hrs late fee)
+✓ Material Cost Pass-Through
+✓ Contractor Responsibilities (cost + 20% for risk/dirt/pump)
+✓ Scope of Contract (drip edge to drip edge)
+✓ Early Occupation (triggers full payment)
+✓ Warranties (1-year)
+✓ Warranty Limitations (implied warranties waived)
+✓ Insurance
+✓ Confidentiality
+✓ Default & Liability (2yr + 1 day limitation)
+✓ Binding Arbitration (FAA, Texas Property Code Ch. 27)
+✓ Jury Trial Waiver (EXPRESSLY WAIVED)
+✓ RCLA Notice (60-day certified mail requirement)
 
 SIGNATURES:
-Owner: ${state.ownerTypedName} - SIGNED ${today}
-Contractor: ${state.contractorTypedName} - SIGNED ${today}
+-----------
+OWNER: ${state.ownerTypedName} - SIGNED ${today}
+CONTRACTOR: ${state.contractorTypedName} - SIGNED ${today}
 
-This contract is legally binding. Full terms available in printed contract.
+This contract is legally binding. Both parties have acknowledged all terms.
       `;
 
-      // Try EmailJS if configured
       if (EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY') {
         try {
-          // Send to customer
           await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
             to_email: state.customer.email,
             to_name: state.customer.name,
-            from_name: 'Burnett Custom Homes',
-            subject: `Your Construction Contract - ${pkg.name} ${size.label}`,
+            from_name: 'Burnett Customs, LLC',
+            subject: `Executed MSA Contract - ${pkg.name} ${size.label}`,
             message: contractSummary
           });
 
-          // Send to contractor
           await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
             to_email: 'bobby@burnettcustoms.net',
             to_name: 'Bobby Burnett',
             from_name: state.customer.name,
-            subject: `NEW CONTRACT SIGNED - ${state.customer.name} - ${pkg.name} ${size.label}`,
+            subject: `NEW CONTRACT EXECUTED - ${state.customer.name} - ${pkg.name} ${size.label}`,
             message: contractSummary
           });
 
@@ -1084,26 +1564,20 @@ This contract is legally binding. Full terms available in printed contract.
           render();
         } catch (error) {
           console.error('EmailJS error:', error);
-          // Fall back to mailto
           openMailtoLinks(contractSummary, pkg, size, total);
         }
       } else {
-        // Use mailto fallback
         openMailtoLinks(contractSummary, pkg, size, total);
       }
     }
 
     function openMailtoLinks(contractSummary, pkg, size, total) {
-      const subject = encodeURIComponent(`Construction Contract - ${pkg.name} ${size.label} - $${total.toLocaleString()}`);
+      const subject = encodeURIComponent(`Executed MSA Contract - ${pkg.name} ${size.label} - $${total.toLocaleString()}`);
       const body = encodeURIComponent(contractSummary);
 
-      // Open email to contractor
       const contractorLink = `mailto:bobby@burnettcustoms.net?subject=${subject}&body=${body}`;
-
-      // Open email to customer
       const customerLink = `mailto:${state.customer.email}?subject=${subject}&body=${body}`;
 
-      // Open both
       window.open(contractorLink, '_blank');
       setTimeout(() => {
         window.open(customerLink, '_blank');
@@ -1123,20 +1597,27 @@ This contract is legally binding. Full terms available in printed contract.
       state.addons = {};
       state.quantities = {};
       state.contractStep = 0;
-      state.customer = { name: '', phone: '', email: '', address: '', propertyAddress: '' };
-      state.acks = {
-        changeOrders: false, delays: false, payments: false, warranties: false,
-        arbitration: false, juryWaiver: false, rcla: false, contractorReview: false
-      };
+      state.customer = { name: '', phone: '', email: '', address: '', propertyAddress: '', title: '' };
+
+      // Reset all section acknowledgments
+      Object.keys(state.sections).forEach(key => {
+        state.sections[key] = { checked: false, initialed: false };
+      });
+
       state.ownerTypedName = '';
-      state.contractorTypedName = 'Robert Burnett';
+      state.contractorTypedName = 'Bobby Burnett';
       state.ownerSigned = false;
       state.contractorSigned = false;
+      state.paymentMethod = null;
+      state.paymentReference = '';
       state.sending = false;
       state.sent = false;
       state.sendError = null;
+
       window.ownerPad = null;
       window.contractorPad = null;
+      Object.keys(initialsPads).forEach(key => delete initialsPads[key]);
+
       render();
     }
 
