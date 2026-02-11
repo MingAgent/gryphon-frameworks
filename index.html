@@ -9,20 +9,25 @@
   <style>
     /* ==================== BRAND COLORS ====================
        Primary:   Dark Azure #003057, Vivid Azure #05c3de
-       Secondary: Green #22c55e
-       Background: Black #000000, White #ffffff
+       Secondary: Bright Cyan #04ceea
+       Background: White page, Dark cards
     ========================================================= */
     :root {
       --primary-dark: #003057;
       --primary-vivid: #05c3de;
+      --primary-bright: #04ceea;
       --accent-green: #22c55e;
       --secondary-darkest: #01315b;
-      --bg-black: #000000;
-      --bg-white: #ffffff;
+      --bg-page: #ffffff;
+      --bg-card: #003057;
+      --text-on-card: #ffffff;
     }
 
     * { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-page);
+    }
 
     .signature-pad {
       border: 2px dashed #9ca3af;
@@ -122,32 +127,38 @@
     .btn-secondary:hover { background: #04b5cc; }
 
     .header-bar {
-      background: var(--primary-dark);
-      color: var(--bg-white);
+      background: var(--primary-bright);
+      color: var(--primary-dark);
     }
 
     .type-card {
-      border: 3px solid #e5e7eb;
+      background: var(--bg-card);
+      color: var(--text-on-card);
+      border: 3px solid var(--primary-vivid);
       transition: all 0.2s;
       cursor: pointer;
     }
-    .type-card:hover { border-color: var(--primary-vivid); transform: translateY(-2px); }
-    .type-card.selected { border-color: var(--primary-dark); background: #f0f9ff; }
+    .type-card:hover { border-color: var(--primary-bright); transform: translateY(-2px); box-shadow: 0 8px 25px rgba(4, 206, 234, 0.3); }
+    .type-card.selected { border-color: var(--primary-bright); background: var(--secondary-darkest); box-shadow: 0 0 20px rgba(4, 206, 234, 0.5); }
 
     .size-card {
-      border: 2px solid #e5e7eb;
+      background: var(--bg-card);
+      color: var(--text-on-card);
+      border: 2px solid var(--primary-vivid);
       transition: all 0.2s;
       cursor: pointer;
     }
-    .size-card:hover { border-color: var(--primary-vivid); }
-    .size-card.selected { border-color: var(--primary-dark); background: #f0f9ff; }
+    .size-card:hover { border-color: var(--primary-bright); box-shadow: 0 4px 15px rgba(4, 206, 234, 0.2); }
+    .size-card.selected { border-color: var(--primary-bright); background: var(--secondary-darkest); box-shadow: 0 0 15px rgba(4, 206, 234, 0.4); }
 
     .eave-btn {
-      border: 2px solid #e5e7eb;
+      background: var(--bg-card);
+      color: var(--text-on-card);
+      border: 2px solid var(--primary-vivid);
       transition: all 0.2s;
     }
-    .eave-btn:hover { border-color: var(--primary-vivid); }
-    .eave-btn.selected { border-color: var(--primary-dark); background: var(--primary-dark); color: white; }
+    .eave-btn:hover { border-color: var(--primary-bright); }
+    .eave-btn.selected { border-color: var(--primary-bright); background: var(--primary-bright); color: var(--primary-dark); font-weight: bold; }
 
     @media print {
       body { font-size: 9pt; line-height: 1.3; }
@@ -237,7 +248,7 @@
     }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-white min-h-screen">
   <div id="app"></div>
 
   <script>
@@ -328,6 +339,29 @@
 
     // Store initials pads
     const initialsPads = {};
+
+    // ==================== LOGO SVG ====================
+    const LOGO_SVG = `
+      <svg viewBox="0 0 100 100" class="w-12 h-12">
+        <!-- Outer hexagon (dark blue) -->
+        <polygon points="50,2 93,27 93,73 50,98 7,73 7,27" fill="#003057" stroke="#003057" stroke-width="2"/>
+        <!-- Inner hexagon (cyan) -->
+        <polygon points="50,10 85,30 85,70 50,90 15,70 15,30" fill="#05c3de"/>
+        <!-- Letter B -->
+        <text x="30" y="62" font-family="Arial Black, sans-serif" font-size="32" font-weight="900" fill="#003057">B</text>
+        <!-- Letter C -->
+        <text x="52" y="62" font-family="Arial Black, sans-serif" font-size="32" font-weight="900" fill="#003057">C</text>
+      </svg>
+    `;
+
+    const LOGO_SVG_SMALL = `
+      <svg viewBox="0 0 100 100" class="w-8 h-8">
+        <polygon points="50,2 93,27 93,73 50,98 7,73 7,27" fill="#003057" stroke="#003057" stroke-width="2"/>
+        <polygon points="50,10 85,30 85,70 50,90 15,70 15,30" fill="#05c3de"/>
+        <text x="30" y="62" font-family="Arial Black, sans-serif" font-size="32" font-weight="900" fill="#003057">B</text>
+        <text x="52" y="62" font-family="Arial Black, sans-serif" font-size="32" font-weight="900" fill="#003057">C</text>
+      </svg>
+    `;
 
     // ==================== DATA ====================
 
@@ -552,29 +586,32 @@
       return `
         <header class="header-bar p-4 shadow-lg">
           <div class="max-w-4xl mx-auto flex items-center justify-between">
-            <div>
-              <h1 class="text-xl font-bold">Burnett Customs</h1>
-              <p class="text-[#05c3de] text-sm">Metal Building Estimator</p>
+            <div class="flex items-center gap-3">
+              ${LOGO_SVG}
+              <div>
+                <h1 class="text-xl font-bold text-[#003057]">Burnett Customs</h1>
+                <p class="text-[#003057] text-sm opacity-80">Metal Building Estimator</p>
+              </div>
             </div>
           </div>
         </header>
 
         <main class="max-w-4xl mx-auto p-4">
           <div class="text-center mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Select Building Type</h2>
+            <h2 class="text-2xl font-bold text-[#003057] mb-2">Select Building Type</h2>
             <p class="text-gray-600">Choose the type of metal building for your project</p>
           </div>
 
           <div class="grid gap-4 md:grid-cols-3">
             ${Object.entries(BUILDING_TYPES).map(([key, type]) => `
               <div onclick="selectBuildingType('${key}')"
-                   class="type-card bg-white rounded-xl p-6 text-center ${state.buildingType === key ? 'selected' : ''}">
+                   class="type-card rounded-xl p-6 text-center ${state.buildingType === key ? 'selected' : ''}">
                 <div class="text-4xl mb-3">${type.icon}</div>
-                <h3 class="text-xl font-bold" style="color: ${type.color}">${type.name}</h3>
-                <p class="text-gray-600 text-sm mt-1">${type.desc}</p>
+                <h3 class="text-xl font-bold" style="color: ${type.color === '#003057' ? '#04ceea' : type.color}">${type.name}</h3>
+                <p class="text-gray-300 text-sm mt-1">${type.desc}</p>
                 ${type.hasFixedPricing ?
-                  `<p class="text-[#05c3de] font-semibold mt-3">Starting at $26,500</p>` :
-                  `<p class="text-orange-500 font-semibold mt-3">⚠️ ${type.note}</p>`
+                  `<p class="text-[#04ceea] font-semibold mt-3">Starting at $26,500</p>` :
+                  `<p class="text-orange-400 font-semibold mt-3">⚠️ ${type.note}</p>`
                 }
               </div>
             `).join('')}
@@ -595,9 +632,12 @@
       return `
         <header class="header-bar p-4 shadow-lg">
           <div class="max-w-4xl mx-auto flex items-center justify-between">
-            <div>
-              <h1 class="text-xl font-bold">Burnett Customs</h1>
-              <p class="text-[#05c3de] text-sm">Bolt-Up Construction - Custom Quote</p>
+            <div class="flex items-center gap-3">
+              ${LOGO_SVG}
+              <div>
+                <h1 class="text-xl font-bold text-[#003057]">Burnett Customs</h1>
+                <p class="text-[#003057] text-sm opacity-80">Bolt-Up Construction - Custom Quote</p>
+              </div>
             </div>
           </div>
         </header>
@@ -684,31 +724,34 @@
       return `
         <header class="header-bar p-4 shadow-lg">
           <div class="max-w-4xl mx-auto flex items-center justify-between">
-            <div>
-              <h1 class="text-xl font-bold">Burnett Customs</h1>
-              <p class="text-[#05c3de] text-sm">${type.name}</p>
+            <div class="flex items-center gap-3">
+              ${LOGO_SVG_SMALL}
+              <div>
+                <h1 class="text-lg font-bold text-[#003057]">Burnett Customs</h1>
+                <p class="text-[#003057] text-sm opacity-80">${type.name}</p>
+              </div>
             </div>
             <div class="text-right">
-              <div class="text-2xl font-bold">${formatCurrency(calculateTotal())}</div>
-              <div class="text-[#05c3de] text-xs">Estimated Total</div>
+              <div class="text-2xl font-bold text-[#003057]">${formatCurrency(calculateTotal())}</div>
+              <div class="text-[#003057] text-xs opacity-80">Estimated Total</div>
             </div>
           </div>
         </header>
 
         <main class="max-w-4xl mx-auto p-4">
           <div class="text-center mb-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Select Building Size</h2>
+            <h2 class="text-2xl font-bold text-[#003057] mb-2">Select Building Size</h2>
             <p class="text-gray-600">Standard 3-on-12 roof pitch on all buildings</p>
           </div>
 
           <div class="grid gap-3 grid-cols-2 md:grid-cols-5">
             ${BUILDING_SIZES.map(size => `
               <div onclick="selectSize('${size.id}')"
-                   class="size-card bg-white rounded-lg p-4 text-center ${state.buildingSize === size.id ? 'selected' : ''}">
-                <div class="font-bold text-lg text-gray-800">${size.label}</div>
-                <div class="text-gray-500 text-sm">${size.sqft.toLocaleString()} sq ft</div>
-                <div class="text-[#05c3de] font-semibold text-sm mt-2">Starting at</div>
-                <div class="text-[#003057] font-bold">${formatCurrency(size.startingPrice)}</div>
+                   class="size-card rounded-lg p-4 text-center ${state.buildingSize === size.id ? 'selected' : ''}">
+                <div class="font-bold text-lg text-white">${size.label}</div>
+                <div class="text-gray-300 text-sm">${size.sqft.toLocaleString()} sq ft</div>
+                <div class="text-[#04ceea] font-semibold text-sm mt-2">Starting at</div>
+                <div class="text-[#04ceea] font-bold">${formatCurrency(size.startingPrice)}</div>
               </div>
             `).join('')}
           </div>
@@ -733,29 +776,32 @@
       return `
         <header class="header-bar p-4 shadow-lg">
           <div class="max-w-4xl mx-auto flex items-center justify-between">
-            <div>
-              <h1 class="text-xl font-bold">Burnett Customs</h1>
-              <p class="text-[#05c3de] text-sm">${type.name} - ${size.label}</p>
+            <div class="flex items-center gap-3">
+              ${LOGO_SVG_SMALL}
+              <div>
+                <h1 class="text-lg font-bold text-[#003057]">Burnett Customs</h1>
+                <p class="text-[#003057] text-sm opacity-80">${type.name} - ${size.label}</p>
+              </div>
             </div>
             <div class="text-right">
-              <div class="text-2xl font-bold">${formatCurrency(calculateTotal())}</div>
-              <div class="text-[#05c3de] text-xs">Estimated Total</div>
+              <div class="text-2xl font-bold text-[#003057]">${formatCurrency(calculateTotal())}</div>
+              <div class="text-[#003057] text-xs opacity-80">Estimated Total</div>
             </div>
           </div>
         </header>
 
         <main class="max-w-4xl mx-auto p-4">
           <div class="text-center mb-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Select Eave Height</h2>
+            <h2 class="text-2xl font-bold text-[#003057] mb-2">Select Eave Height</h2>
             <p class="text-gray-600">Choose the wall height for your building</p>
           </div>
 
           <div class="flex flex-wrap justify-center gap-4">
             ${EAVE_HEIGHTS.map(eave => `
               <button onclick="selectEave('${eave.id}')"
-                      class="eave-btn bg-white rounded-xl p-6 text-center min-w-[120px] ${state.eaveHeight === eave.id ? 'selected' : ''}">
-                <div class="text-3xl font-bold">${eave.label}</div>
-                <div class="text-sm mt-2 ${state.eaveHeight === eave.id ? 'text-white' : 'text-gray-500'}">
+                      class="eave-btn rounded-xl p-6 text-center min-w-[120px] ${state.eaveHeight === eave.id ? 'selected' : ''}">
+                <div class="text-3xl font-bold ${state.eaveHeight === eave.id ? 'text-[#003057]' : 'text-white'}">${eave.label}</div>
+                <div class="text-sm mt-2 ${state.eaveHeight === eave.id ? 'text-[#003057]' : 'text-[#04ceea]'}">
                   ${eave.modifier === 0 ? 'Base price' : '+' + formatCurrency(eave.modifier)}
                 </div>
               </button>
@@ -783,20 +829,23 @@
       return `
         <header class="header-bar p-4 shadow-lg">
           <div class="max-w-4xl mx-auto flex items-center justify-between">
-            <div>
-              <h1 class="text-xl font-bold">Burnett Customs</h1>
-              <p class="text-[#05c3de] text-sm">${type.name} - ${size.label} × ${eave.label}</p>
+            <div class="flex items-center gap-3">
+              ${LOGO_SVG_SMALL}
+              <div>
+                <h1 class="text-lg font-bold text-[#003057]">Burnett Customs</h1>
+                <p class="text-[#003057] text-sm opacity-80">${type.name} - ${size.label} × ${eave.label}</p>
+              </div>
             </div>
             <div class="text-right">
-              <div class="text-2xl font-bold">${formatCurrency(calculateTotal())}</div>
-              <div class="text-[#05c3de] text-xs">Estimated Total</div>
+              <div class="text-2xl font-bold text-[#003057]">${formatCurrency(calculateTotal())}</div>
+              <div class="text-[#003057] text-xs opacity-80">Estimated Total</div>
             </div>
           </div>
         </header>
 
         <main class="max-w-4xl mx-auto p-4">
           <div class="text-center mb-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Door Configuration</h2>
+            <h2 class="text-2xl font-bold text-[#003057] mb-2">Door Configuration</h2>
             <p class="text-gray-600">Configure doors for your building</p>
           </div>
 
@@ -872,20 +921,23 @@
       return `
         <header class="header-bar p-4 shadow-lg">
           <div class="max-w-4xl mx-auto flex items-center justify-between">
-            <div>
-              <h1 class="text-xl font-bold">Burnett Customs</h1>
-              <p class="text-[#05c3de] text-sm">${type.name} - ${size.label} × ${eave.label}</p>
+            <div class="flex items-center gap-3">
+              ${LOGO_SVG_SMALL}
+              <div>
+                <h1 class="text-lg font-bold text-[#003057]">Burnett Customs</h1>
+                <p class="text-[#003057] text-sm opacity-80">${type.name} - ${size.label} × ${eave.label}</p>
+              </div>
             </div>
             <div class="text-right">
-              <div class="text-2xl font-bold">${formatCurrency(calculateTotal())}</div>
-              <div class="text-[#05c3de] text-xs">Estimated Total</div>
+              <div class="text-2xl font-bold text-[#003057]">${formatCurrency(calculateTotal())}</div>
+              <div class="text-[#003057] text-xs opacity-80">Estimated Total</div>
             </div>
           </div>
         </header>
 
         <main class="max-w-4xl mx-auto p-4">
           <div class="text-center mb-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Add-Ons & Options</h2>
+            <h2 class="text-2xl font-bold text-[#003057] mb-2">Add-Ons & Options</h2>
             <p class="text-gray-600">Customize your building with additional features</p>
           </div>
 
@@ -963,13 +1015,16 @@
       return `
         <header class="header-bar p-4 shadow-lg">
           <div class="max-w-4xl mx-auto flex items-center justify-between">
-            <div>
-              <h1 class="text-xl font-bold">Burnett Customs</h1>
-              <p class="text-[#05c3de] text-sm">Estimate Summary</p>
+            <div class="flex items-center gap-3">
+              ${LOGO_SVG_SMALL}
+              <div>
+                <h1 class="text-lg font-bold text-[#003057]">Burnett Customs</h1>
+                <p class="text-[#003057] text-sm opacity-80">Estimate Summary</p>
+              </div>
             </div>
             <div class="text-right">
-              <div class="text-2xl font-bold">${formatCurrency(total)}</div>
-              <div class="text-[#05c3de] text-xs">Estimated Total</div>
+              <div class="text-2xl font-bold text-[#003057]">${formatCurrency(total)}</div>
+              <div class="text-[#003057] text-xs opacity-80">Estimated Total</div>
             </div>
           </div>
         </header>
@@ -1032,13 +1087,16 @@
         <header class="header-bar p-3 shadow-lg no-print">
           <div class="max-w-4xl mx-auto">
             <div class="flex items-center justify-between mb-2">
-              <div>
-                <h1 class="text-lg font-bold">Burnett Customs</h1>
-                <p class="text-[#05c3de] text-xs">${type.name} - ${size.label} × ${eave.label}</p>
+              <div class="flex items-center gap-2">
+                ${LOGO_SVG_SMALL}
+                <div>
+                  <h1 class="text-lg font-bold text-[#003057]">Burnett Customs</h1>
+                  <p class="text-[#003057] text-xs opacity-80">${type.name} - ${size.label} × ${eave.label}</p>
+                </div>
               </div>
               <div class="text-right">
-                <div class="text-lg font-bold">${formatCurrency(total)}</div>
-                <div class="text-[#05c3de] text-xs">Contract Sum</div>
+                <div class="text-lg font-bold text-[#003057]">${formatCurrency(total)}</div>
+                <div class="text-[#003057] text-xs opacity-80">Contract Sum</div>
               </div>
             </div>
 
@@ -2163,7 +2221,13 @@ Burnett Customs, LLC
         <body>
           <div class="container">
             <div class="header">
-              <h1>🏗️ BURNETT CUSTOMS</h1>
+              <svg viewBox="0 0 100 100" style="width: 60px; height: 60px; margin: 0 auto 10px;">
+                <polygon points="50,2 93,27 93,73 50,98 7,73 7,27" fill="#003057" stroke="#003057" stroke-width="2"/>
+                <polygon points="50,10 85,30 85,70 50,90 15,70 15,30" fill="#05c3de"/>
+                <text x="30" y="62" font-family="Arial Black, sans-serif" font-size="32" font-weight="900" fill="#003057">B</text>
+                <text x="52" y="62" font-family="Arial Black, sans-serif" font-size="32" font-weight="900" fill="#003057">C</text>
+              </svg>
+              <h1>BURNETT CUSTOMS</h1>
               <p>Metal Building Construction Agreement</p>
               <p>Contract Date: ${today}</p>
             </div>
@@ -2406,7 +2470,13 @@ Burnett Customs, LLC
         <body>
           <div class="container">
             <div class="header">
-              <h1>🏗️ BURNETT CUSTOMS</h1>
+              <svg viewBox="0 0 100 100" style="width: 60px; height: 60px; margin: 0 auto 10px;">
+                <polygon points="50,2 93,27 93,73 50,98 7,73 7,27" fill="#003057" stroke="#003057" stroke-width="2"/>
+                <polygon points="50,10 85,30 85,70 50,90 15,70 15,30" fill="#05c3de"/>
+                <text x="30" y="62" font-family="Arial Black, sans-serif" font-size="32" font-weight="900" fill="#003057">B</text>
+                <text x="52" y="62" font-family="Arial Black, sans-serif" font-size="32" font-weight="900" fill="#003057">C</text>
+              </svg>
+              <h1>BURNETT CUSTOMS</h1>
               <p>Metal Building Construction Agreement</p>
               <p>Contract Date: ${today}</p>
             </div>
