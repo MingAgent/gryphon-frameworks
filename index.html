@@ -310,8 +310,11 @@
       // Signatures
       ownerTypedName: '',
       ownerSigned: false,
+      ownerSigData: null,  // Store signature image data
       contractorTypedName: 'Bobby Burnett',
       contractorSigned: false,
+      contractorSigData: null,  // Store signature image data
+      initialsData: {},  // Store initials image data by section ID
 
       // Payment
       paymentMethod: null,
@@ -1802,6 +1805,7 @@
       if (initialsPads[sectionId]) {
         initialsPads[sectionId].clear();
         state.sections[sectionId].initialed = false;
+        delete state.initialsData[sectionId];
         updateNavigationState();
       }
     }
@@ -1843,40 +1847,123 @@
     }
 
     function selectPaymentMethod(method) {
+      // Save signature data before re-render
+      saveSignatureData();
       state.paymentMethod = method;
       render();
-      setTimeout(initSignaturePads, 100);
+      setTimeout(() => {
+        initSignaturePads();
+        restoreSignatureData();
+      }, 100);
+    }
+
+    function saveSignatureData() {
+      // Save owner signature
+      const ownerCanvas = document.getElementById('ownerSigPad');
+      if (ownerCanvas && window.ownerPad && !window.ownerPad.isEmpty()) {
+        state.ownerSigData = ownerCanvas.toDataURL('image/png');
+      }
+      // Save contractor signature
+      const contractorCanvas = document.getElementById('contractorSigPad');
+      if (contractorCanvas && window.contractorPad && !window.contractorPad.isEmpty()) {
+        state.contractorSigData = contractorCanvas.toDataURL('image/png');
+      }
+      // Save initials for all sections
+      Object.keys(state.sections).forEach(sectionId => {
+        const initialsCanvas = document.getElementById('initials_' + sectionId);
+        if (initialsCanvas && initialsPads[sectionId] && !initialsPads[sectionId].isEmpty()) {
+          state.initialsData[sectionId] = initialsCanvas.toDataURL('image/png');
+        }
+      });
+    }
+
+    function restoreSignatureData() {
+      // Restore owner signature
+      if (state.ownerSigData) {
+        const ownerCanvas = document.getElementById('ownerSigPad');
+        if (ownerCanvas) {
+          const img = new Image();
+          img.onload = () => {
+            const ctx = ownerCanvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            ownerCanvas.classList.add('signed');
+          };
+          img.src = state.ownerSigData;
+        }
+      }
+      // Restore contractor signature
+      if (state.contractorSigData) {
+        const contractorCanvas = document.getElementById('contractorSigPad');
+        if (contractorCanvas) {
+          const img = new Image();
+          img.onload = () => {
+            const ctx = contractorCanvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            contractorCanvas.classList.add('signed');
+          };
+          img.src = state.contractorSigData;
+        }
+      }
+      // Restore initials for all sections
+      Object.keys(state.initialsData).forEach(sectionId => {
+        const initialsCanvas = document.getElementById('initials_' + sectionId);
+        if (initialsCanvas && state.initialsData[sectionId]) {
+          const img = new Image();
+          img.onload = () => {
+            const ctx = initialsCanvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            initialsCanvas.classList.add('signed');
+          };
+          img.src = state.initialsData[sectionId];
+        }
+      });
     }
 
     function initSignaturePads() {
-      // Owner signature
+      // Owner signature - always reinitialize since canvas may be recreated
       const ownerCanvas = document.getElementById('ownerSigPad');
-      if (ownerCanvas && !window.ownerPad) {
-        window.ownerPad = new SignaturePad(ownerCanvas, (signed) => {
-          state.ownerSigned = signed;
-          ownerCanvas.classList.toggle('signed', signed);
-        });
+      if (ownerCanvas) {
+        // Check if this is a new canvas element (different from what ownerPad was attached to)
+        if (!window.ownerPad || window.ownerPad.canvas !== ownerCanvas) {
+          window.ownerPad = new SignaturePad(ownerCanvas, (signed) => {
+            state.ownerSigned = signed;
+            if (signed) {
+              state.ownerSigData = ownerCanvas.toDataURL('image/png');
+            }
+            ownerCanvas.classList.toggle('signed', signed);
+          });
+        }
       }
 
-      // Contractor signature
+      // Contractor signature - always reinitialize since canvas may be recreated
       const contractorCanvas = document.getElementById('contractorSigPad');
-      if (contractorCanvas && !window.contractorPad) {
-        window.contractorPad = new SignaturePad(contractorCanvas, (signed) => {
-          state.contractorSigned = signed;
-          contractorCanvas.classList.toggle('signed', signed);
-        });
+      if (contractorCanvas) {
+        if (!window.contractorPad || window.contractorPad.canvas !== contractorCanvas) {
+          window.contractorPad = new SignaturePad(contractorCanvas, (signed) => {
+            state.contractorSigned = signed;
+            if (signed) {
+              state.contractorSigData = contractorCanvas.toDataURL('image/png');
+            }
+            contractorCanvas.classList.toggle('signed', signed);
+          });
+        }
       }
 
       // Initialize initials pads for current section
       const section = CONTRACT_SECTIONS[state.contractStep];
-      if (section.requiresAck) {
+      if (section && section.requiresAck) {
         const initialsCanvas = document.getElementById('initials_' + section.id);
-        if (initialsCanvas && !initialsPads[section.id]) {
-          initialsPads[section.id] = new SignaturePad(initialsCanvas, (signed) => {
-            state.sections[section.id].initialed = signed;
-            initialsCanvas.classList.toggle('signed', signed);
-            updateNavigationState();
-          }, true);
+        if (initialsCanvas) {
+          if (!initialsPads[section.id] || initialsPads[section.id].canvas !== initialsCanvas) {
+            initialsPads[section.id] = new SignaturePad(initialsCanvas, (signed) => {
+              state.sections[section.id].initialed = signed;
+              if (signed) {
+                state.initialsData[section.id] = initialsCanvas.toDataURL('image/png');
+              }
+              initialsCanvas.classList.toggle('signed', signed);
+              updateNavigationState();
+            }, true);
+          }
         }
       }
     }
@@ -1885,6 +1972,7 @@
       if (window.ownerPad) {
         window.ownerPad.clear();
         state.ownerSigned = false;
+        state.ownerSigData = null;
       }
     }
 
@@ -1892,6 +1980,7 @@
       if (window.contractorPad) {
         window.contractorPad.clear();
         state.contractorSigned = false;
+        state.contractorSigData = null;
       }
     }
 
