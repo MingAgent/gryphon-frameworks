@@ -126,6 +126,15 @@
     }
     .btn-secondary:hover { background: #04b5cc; }
 
+    .btn-active {
+      background: var(--primary-bright);
+      color: var(--primary-dark);
+      font-weight: 700;
+      transition: all 0.2s;
+      box-shadow: 0 4px 15px rgba(4, 206, 234, 0.4);
+    }
+    .btn-active:hover { background: #03b8d4; transform: translateY(-1px); }
+
     .header-bar {
       background: var(--primary-bright);
       color: var(--primary-dark);
@@ -732,7 +741,7 @@
 
           <div class="mt-8 flex justify-end">
             <button onclick="nextStep()" ${!state.buildingType ? 'disabled' : ''}
-                    class="py-3 px-8 rounded-xl font-semibold ${state.buildingType ? 'btn-primary' : 'bg-gray-200 text-gray-400'}">
+                    class="py-3 px-8 rounded-xl font-semibold ${state.buildingType ? 'btn-active' : 'bg-gray-200 text-gray-400'}">
               Next →
             </button>
           </div>
@@ -874,7 +883,7 @@
               ← Back
             </button>
             <button onclick="nextStep()" ${!state.buildingSize ? 'disabled' : ''}
-                    class="py-3 px-8 rounded-xl font-semibold ${state.buildingSize ? 'btn-primary' : 'bg-gray-200 text-gray-400'}">
+                    class="py-3 px-8 rounded-xl font-semibold ${state.buildingSize ? 'btn-active' : 'bg-gray-200 text-gray-400'}">
               Next →
             </button>
           </div>
@@ -926,7 +935,7 @@
               ← Back
             </button>
             <button onclick="nextStep()" ${!state.eaveHeight ? 'disabled' : ''}
-                    class="py-3 px-8 rounded-xl font-semibold ${state.eaveHeight ? 'btn-primary' : 'bg-gray-200 text-gray-400'}">
+                    class="py-3 px-8 rounded-xl font-semibold ${state.eaveHeight ? 'btn-active' : 'bg-gray-200 text-gray-400'}">
               Next →
             </button>
           </div>
