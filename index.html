@@ -149,12 +149,12 @@
     }
     .type-card:hover {
       background: var(--primary-bright);
-      color: var(--primary-dark);
+      color: #003057 !important;
       border-color: var(--primary-dark);
       transform: translateY(-2px);
       box-shadow: 0 8px 25px rgba(4, 206, 234, 0.4);
     }
-    .type-card:hover * { color: var(--primary-dark); }
+    .type-card:hover * { color: #003057 !important; }
     .type-card.selected {
       border: 4px solid #00ffff;
       background: var(--secondary-darkest);
@@ -162,8 +162,8 @@
       box-shadow: 0 0 15px rgba(4, 206, 234, 0.8), 0 0 30px rgba(4, 206, 234, 0.5), 0 0 45px rgba(4, 206, 234, 0.3), inset 0 0 20px rgba(4, 206, 234, 0.1);
       transform: scale(1.02);
     }
-    .type-card.selected * { color: var(--text-on-card); }
-    .type-card.selected .text-\\[\\#05c3de\\] { color: var(--primary-bright) !important; }
+    .type-card.selected * { color: #ffffff !important; }
+    .type-card.selected h3, .type-card.selected .text-\\[\\#05c3de\\] { color: #05c3de !important; }
 
     .size-card {
       background: var(--bg-card);
@@ -174,11 +174,11 @@
     }
     .size-card:hover {
       background: var(--primary-bright);
-      color: var(--primary-dark);
+      color: #003057 !important;
       border-color: var(--primary-dark);
       box-shadow: 0 4px 15px rgba(4, 206, 234, 0.4);
     }
-    .size-card:hover * { color: var(--primary-dark) !important; }
+    .size-card:hover * { color: #003057 !important; }
     .size-card.selected {
       border: 4px solid #00ffff;
       background: var(--secondary-darkest);
@@ -186,8 +186,8 @@
       box-shadow: 0 0 12px rgba(4, 206, 234, 0.8), 0 0 25px rgba(4, 206, 234, 0.5), 0 0 40px rgba(4, 206, 234, 0.3), inset 0 0 15px rgba(4, 206, 234, 0.1);
       transform: scale(1.03);
     }
-    .size-card.selected * { color: var(--text-on-card) !important; }
-    .size-card.selected .text-\\[\\#05c3de\\] { color: var(--primary-bright) !important; }
+    .size-card.selected * { color: #ffffff !important; }
+    .size-card.selected .text-\\[\\#05c3de\\] { color: #05c3de !important; }
 
     .eave-btn {
       background: var(--bg-card);
@@ -197,16 +197,18 @@
     }
     .eave-btn:hover {
       background: var(--primary-bright);
-      color: var(--primary-dark);
+      color: #003057 !important;
       border-color: var(--primary-dark);
     }
+    .eave-btn:hover * { color: #003057 !important; }
     .eave-btn.selected {
       border: 3px solid #00ffff;
       background: var(--primary-bright);
-      color: var(--primary-dark);
+      color: #003057 !important;
       font-weight: bold;
       box-shadow: 0 0 10px rgba(4, 206, 234, 0.8), 0 0 20px rgba(4, 206, 234, 0.5);
     }
+    .eave-btn.selected * { color: #003057 !important; }
 
     @media print {
       body { font-size: 9pt; line-height: 1.3; }
