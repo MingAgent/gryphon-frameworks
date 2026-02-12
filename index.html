@@ -98,10 +98,14 @@
       font-weight: bold; font-size: 11px;
       transition: all 0.3s;
       flex-shrink: 0;
+      cursor: pointer;
     }
-    .progress-step.completed { background: var(--primary-vivid); color: var(--bg-white); }
-    .progress-step.current { background: var(--primary-dark); color: var(--bg-white); transform: scale(1.1); }
-    .progress-step.pending { background: #e5e7eb; color: #9ca3af; }
+    .progress-step.completed { background: var(--primary-vivid); color: #ffffff; }
+    .progress-step.completed:hover { background: var(--primary-bright); transform: scale(1.15); box-shadow: 0 0 10px rgba(4, 206, 234, 0.5); }
+    .progress-step.current { background: var(--primary-dark); color: #ffffff; transform: scale(1.1); }
+    .progress-step.current:hover { box-shadow: 0 0 10px rgba(0, 48, 87, 0.5); }
+    .progress-step.pending { background: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
+    .progress-step.clickable:hover { background: #d1d5db; color: #6b7280; cursor: pointer; }
 
     .contract-section {
       background: #f9fafb;
@@ -1423,11 +1427,13 @@
               </div>
             </div>
 
-            <!-- Progress indicator -->
+            <!-- Progress indicator (clickable) -->
             <div class="flex items-center justify-center gap-1 mt-2 overflow-x-auto pb-1">
               ${CONTRACT_SECTIONS.map((s, i) => `
                 <div class="flex items-center">
-                  <div class="progress-step ${i < state.contractStep ? 'completed' : i === state.contractStep ? 'current' : 'pending'}">
+                  <div onclick="${i <= state.contractStep ? `goToContractStep(${i})` : ''}"
+                       title="${s.title}"
+                       class="progress-step ${i < state.contractStep ? 'completed' : i === state.contractStep ? 'current' : 'pending'}">
                     ${i < state.contractStep ? '✓' : i + 1}
                   </div>
                   ${i < CONTRACT_SECTIONS.length - 1 ? `<div class="w-3 h-0.5" style="background: ${i < state.contractStep ? '#05c3de' : '#003057'}"></div>` : ''}
@@ -2180,6 +2186,20 @@
       if (state.contractStep > 0) {
         state.contractStep--;
         render();
+      }
+    }
+
+    // Navigate directly to a specific contract step (only if already visited)
+    function goToContractStep(stepIndex) {
+      if (stepIndex >= 0 && stepIndex <= state.contractStep) {
+        state.contractStep = stepIndex;
+        render();
+        // Re-initialize signature pads if going to signatures section
+        if (CONTRACT_SECTIONS[stepIndex].id === 'signatures') {
+          setTimeout(initSignaturePads, 100);
+        }
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }
 
