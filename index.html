@@ -25,6 +25,7 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <style>
     /* ==================== BRAND COLORS ====================
        Primary:   Dark Azure #003057, Vivid Azure #05c3de
@@ -3087,7 +3088,7 @@ Burnett Customs, LLC
       URL.revokeObjectURL(url);
     }
 
-    // Download Bill of Materials / Purchase Order
+    // Download Bill of Materials / Purchase Order as XLSX
     function downloadBOM() {
       const today = new Date().toLocaleDateString();
       const poNumber = 'PO-' + Date.now().toString().slice(-8);
@@ -3095,164 +3096,164 @@ Burnett Customs, LLC
       // Generate BOM for all buildings
       const allBOMs = state.buildings.map((building, index) => generateBOM(building, index));
 
-      // Build HTML document
-      const bomHTML = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Bill of Materials - ${state.customer.name} - ${today.replace(/\\//g, '-')}</title>
-          <style>
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; font-size: 11px; }
-            .page { max-width: 800px; margin: 0 auto; padding: 20px; }
-            .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #003057; padding-bottom: 15px; margin-bottom: 20px; }
-            .logo-section h1 { font-size: 24px; color: #003057; }
-            .logo-section p { color: #6b7280; font-size: 10px; }
-            .po-info { text-align: right; }
-            .po-info .po-number { font-size: 18px; font-weight: bold; color: #003057; }
-            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-            .info-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px; }
-            .info-box h4 { font-size: 10px; text-transform: uppercase; color: #6b7280; margin-bottom: 6px; }
-            .info-box p { margin: 2px 0; }
-            .building-header { background: #003057; color: white; padding: 10px 15px; margin-top: 20px; border-radius: 6px 6px 0 0; }
-            .building-header h3 { font-size: 14px; margin: 0; }
-            .building-header .qty-badge { background: #05c3de; color: #003057; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 10px; }
-            .section-title { background: #e0f7fa; padding: 6px 10px; font-weight: bold; color: #003057; border-left: 3px solid #05c3de; margin-top: 15px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-            th { background: #f3f4f6; text-align: left; padding: 6px 8px; font-size: 9px; text-transform: uppercase; color: #6b7280; border-bottom: 1px solid #e5e7eb; }
-            td { padding: 6px 8px; border-bottom: 1px solid #f3f4f6; }
-            tr:hover { background: #f9fafb; }
-            .line-num { width: 30px; color: #9ca3af; }
-            .qty { text-align: center; font-weight: bold; width: 50px; }
-            .unit { width: 50px; color: #6b7280; }
-            .notes { color: #6b7280; font-size: 10px; }
-            .totals-box { background: #003057; color: white; padding: 15px; margin-top: 20px; border-radius: 6px; }
-            .totals-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center; }
-            .totals-grid .label { font-size: 9px; opacity: 0.8; }
-            .totals-grid .value { font-size: 16px; font-weight: bold; }
-            .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; font-size: 9px; color: #6b7280; text-align: center; }
-            .signature-line { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
-            .sig-box { border-top: 1px solid #000; padding-top: 5px; }
-            .sig-box .label { font-size: 9px; color: #6b7280; }
-            @media print { .page { padding: 0; } }
-          </style>
-        </head>
-        <body>
-          <div class="page">
-            <div class="header">
-              <div class="logo-section">
-                <h1>BURNETT CUSTOMS</h1>
-                <p>Metal Building Construction</p>
-                <p>Victoria, TX | bobby@burnettcustoms.net</p>
-              </div>
-              <div class="po-info">
-                <div class="po-number">${poNumber}</div>
-                <p><strong>BILL OF MATERIALS</strong></p>
-                <p>Date: ${today}</p>
-              </div>
-            </div>
+      // Create workbook
+      const wb = XLSX.utils.book_new();
 
-            <div class="info-grid">
-              <div class="info-box">
-                <h4>Customer / Job Site</h4>
-                <p><strong>${state.customer.name}</strong></p>
-                <p>${state.customer.phone} | ${state.customer.email}</p>
-                <p>${state.customer.propertySameAsMailing
-                  ? state.customer.address1 + (state.customer.address2 ? ', ' + state.customer.address2 : '')
-                  : state.customer.propertyAddress1 + (state.customer.propertyAddress2 ? ', ' + state.customer.propertyAddress2 : '')}</p>
-                <p>${state.customer.propertySameAsMailing
-                  ? state.customer.city + ', ' + state.customer.state + ' ' + state.customer.zip
-                  : state.customer.propertyCity + ', ' + state.customer.propertyState + ' ' + state.customer.propertyZip}</p>
-              </div>
-              <div class="info-box">
-                <h4>Order Summary</h4>
-                <p><strong>Total Buildings:</strong> ${state.buildings.reduce((sum, b) => sum + (b.qty || 1), 0)}</p>
-                <p><strong>Configurations:</strong> ${state.buildings.length}</p>
-                <p><strong>Contract Sum:</strong> ${formatCurrency(calculateTotal())}</p>
-                <p><strong>Payment Method:</strong> ${state.paymentMethod ? state.paymentMethod.charAt(0).toUpperCase() + state.paymentMethod.slice(1) : 'TBD'}</p>
-              </div>
-            </div>
+      // ===== SUMMARY SHEET =====
+      const summaryData = [
+        ['BURNETT CUSTOMS - BILL OF MATERIALS'],
+        ['Metal Building Construction'],
+        [''],
+        ['PO Number:', poNumber],
+        ['Date:', today],
+        [''],
+        ['CUSTOMER INFORMATION'],
+        ['Customer Name:', state.customer.name],
+        ['Phone:', state.customer.phone],
+        ['Email:', state.customer.email],
+        ['Job Site Address:', state.customer.propertySameAsMailing
+          ? state.customer.address1 + (state.customer.address2 ? ', ' + state.customer.address2 : '')
+          : state.customer.propertyAddress1 + (state.customer.propertyAddress2 ? ', ' + state.customer.propertyAddress2 : '')],
+        ['City/State/Zip:', state.customer.propertySameAsMailing
+          ? state.customer.city + ', ' + state.customer.state + ' ' + state.customer.zip
+          : state.customer.propertyCity + ', ' + state.customer.propertyState + ' ' + state.customer.propertyZip],
+        [''],
+        ['ORDER SUMMARY'],
+        ['Total Buildings:', state.buildings.reduce((sum, b) => sum + (b.qty || 1), 0)],
+        ['Configurations:', state.buildings.length],
+        ['Contract Sum:', formatCurrency(calculateTotal())],
+        ['Payment Method:', state.paymentMethod ? state.paymentMethod.charAt(0).toUpperCase() + state.paymentMethod.slice(1) : 'TBD'],
+        [''],
+        ['BUILDING CONFIGURATIONS']
+      ];
 
-            ${allBOMs.map((bom, bIndex) => `
-              <div class="building-header">
-                <h3>Building Configuration ${bIndex + 1}: ${bom.type.name} - ${bom.size.label} × ${bom.eave.label}
-                  <span class="qty-badge">QTY: ${bom.qty}</span>
-                </h3>
-              </div>
+      // Add building summaries
+      allBOMs.forEach((bom, idx) => {
+        summaryData.push([`Building ${idx + 1}:`, `${bom.type.name} - ${bom.size.label} × ${bom.eave.label}`, `Qty: ${bom.qty}`]);
+      });
 
-              ${bom.materials.map(section => `
-                <div class="section-title">${section.section}</div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th class="line-num">#</th>
-                      <th>Item Description</th>
-                      <th class="qty">QTY${bom.qty > 1 ? ' (×' + bom.qty + ')' : ''}</th>
-                      <th class="unit">Unit</th>
-                      <th>Notes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${section.items.map(item => `
-                      <tr>
-                        <td class="line-num">${item.line}</td>
-                        <td>${item.item}</td>
-                        <td class="qty">${item.qty}${bom.qty > 1 ? ' <span style="color:#6b7280;">(${item.qty * bom.qty})</span>' : ''}</td>
-                        <td class="unit">${item.unit}</td>
-                        <td class="notes">${item.notes}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              `).join('')}
-            `).join('')}
+      const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+      summarySheet['!cols'] = [{ wch: 20 }, { wch: 50 }, { wch: 15 }];
+      XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary');
 
-            <div class="totals-box">
-              <div class="totals-grid">
-                <div>
-                  <div class="label">TOTAL BUILDINGS</div>
-                  <div class="value">${state.buildings.reduce((sum, b) => sum + (b.qty || 1), 0)}</div>
-                </div>
-                <div>
-                  <div class="label">TOTAL LINE ITEMS</div>
-                  <div class="value">${allBOMs.reduce((sum, b) => sum + b.totalLines, 0)}</div>
-                </div>
-                <div>
-                  <div class="label">CONTRACT VALUE</div>
-                  <div class="value">${formatCurrency(calculateTotal())}</div>
-                </div>
-              </div>
-            </div>
+      // ===== MATERIALS SHEET (Consolidated BOM for Distributors) =====
+      const materialsData = [
+        ['BILL OF MATERIALS - DISTRIBUTOR ORDER FORM'],
+        ['PO#: ' + poNumber, 'Customer: ' + state.customer.name, 'Date: ' + today],
+        [''],
+        ['Line', 'Section', 'Item Description', 'Qty Per Unit', 'Building Qty', 'Total Qty', 'Unit', 'Notes', 'Building']
+      ];
 
-            <div class="signature-line">
-              <div class="sig-box">
-                <div class="label">Prepared By / Date</div>
-              </div>
-              <div class="sig-box">
-                <div class="label">Approved By / Date</div>
-              </div>
-            </div>
+      let lineNum = 1;
+      allBOMs.forEach((bom, bIndex) => {
+        bom.materials.forEach(section => {
+          section.items.forEach(item => {
+            materialsData.push([
+              lineNum++,
+              section.section,
+              item.item,
+              item.qty,
+              bom.qty,
+              item.qty * bom.qty,
+              item.unit,
+              item.notes,
+              `Bldg ${bIndex + 1}: ${bom.type.name}`
+            ]);
+          });
+        });
+      });
 
-            <div class="footer">
-              <p>This Bill of Materials is an estimate based on building specifications. Actual quantities may vary based on final engineering and site conditions.</p>
-              <p>Generated by Burnett Customs Metal Building Estimator | ${today} | ${poNumber}</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `;
+      // Add totals row
+      materialsData.push(['']);
+      materialsData.push(['', '', 'TOTAL LINE ITEMS:', lineNum - 1, '', '', '', '', '']);
 
-      // Create download
-      const blob = new Blob([bomHTML], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'Burnett_BOM_' + state.customer.name.replace(/\\s+/g, '_') + '_' + poNumber + '.html';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const materialsSheet = XLSX.utils.aoa_to_sheet(materialsData);
+      materialsSheet['!cols'] = [
+        { wch: 6 },   // Line
+        { wch: 22 },  // Section
+        { wch: 40 },  // Item Description
+        { wch: 12 },  // Qty Per Unit
+        { wch: 12 },  // Building Qty
+        { wch: 12 },  // Total Qty
+        { wch: 8 },   // Unit
+        { wch: 25 },  // Notes
+        { wch: 25 }   // Building
+      ];
+      XLSX.utils.book_append_sheet(wb, materialsSheet, 'Materials');
+
+      // ===== INDIVIDUAL BUILDING SHEETS =====
+      allBOMs.forEach((bom, bIndex) => {
+        const buildingData = [
+          [`BUILDING ${bIndex + 1}: ${bom.type.name}`],
+          [`Size: ${bom.size.label}`, `Eave Height: ${bom.eave.label}`, `Quantity: ${bom.qty}`],
+          [''],
+          ['Line', 'Section', 'Item Description', 'Qty (per bldg)', 'Total Qty', 'Unit', 'Notes']
+        ];
+
+        bom.materials.forEach(section => {
+          section.items.forEach(item => {
+            buildingData.push([
+              item.line,
+              section.section,
+              item.item,
+              item.qty,
+              item.qty * bom.qty,
+              item.unit,
+              item.notes
+            ]);
+          });
+        });
+
+        const buildingSheet = XLSX.utils.aoa_to_sheet(buildingData);
+        buildingSheet['!cols'] = [
+          { wch: 6 },   // Line
+          { wch: 22 },  // Section
+          { wch: 40 },  // Item Description
+          { wch: 14 },  // Qty (per bldg)
+          { wch: 12 },  // Total Qty
+          { wch: 8 },   // Unit
+          { wch: 30 }   // Notes
+        ];
+        const sheetName = `Bldg ${bIndex + 1} - ${bom.type.name.substring(0, 15)}`;
+        XLSX.utils.book_append_sheet(wb, buildingSheet, sheetName);
+      });
+
+      // ===== CATEGORY TOTALS SHEET (Aggregated by material type) =====
+      const categoryMap = {};
+      allBOMs.forEach(bom => {
+        bom.materials.forEach(section => {
+          section.items.forEach(item => {
+            const key = `${section.section}|${item.item}|${item.unit}`;
+            if (!categoryMap[key]) {
+              categoryMap[key] = { section: section.section, item: item.item, unit: item.unit, qty: 0 };
+            }
+            categoryMap[key].qty += item.qty * bom.qty;
+          });
+        });
+      });
+
+      const categoryData = [
+        ['AGGREGATED MATERIALS - ALL BUILDINGS'],
+        ['PO#: ' + poNumber, 'Total Buildings: ' + state.buildings.reduce((sum, b) => sum + (b.qty || 1), 0)],
+        [''],
+        ['Section', 'Item Description', 'Total Qty', 'Unit']
+      ];
+
+      let currentSection = '';
+      Object.values(categoryMap).sort((a, b) => a.section.localeCompare(b.section)).forEach(item => {
+        if (item.section !== currentSection) {
+          currentSection = item.section;
+        }
+        categoryData.push([item.section, item.item, item.qty, item.unit]);
+      });
+
+      const categorySheet = XLSX.utils.aoa_to_sheet(categoryData);
+      categorySheet['!cols'] = [{ wch: 25 }, { wch: 45 }, { wch: 12 }, { wch: 8 }];
+      XLSX.utils.book_append_sheet(wb, categorySheet, 'Aggregated Totals');
+
+      // Generate and download file
+      const fileName = `Burnett_BOM_${state.customer.name.replace(/\s+/g, '_')}_${poNumber}.xlsx`;
+      XLSX.writeFile(wb, fileName);
     }
 
     // Initialize initials pads when contract sections load
