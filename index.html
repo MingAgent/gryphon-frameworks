@@ -421,8 +421,8 @@
         { id: 'door_walk', name: "Walkthrough Door", price: 1045, note: 'Qty set in door config' }
       ]},
       { cat: 'Windows', items: [
-        { id: 'win_3x3', name: "3'×3' Fixed Window", price: 525 },
-        { id: 'win_4x4', name: "4'×4' Slider Window", price: 695 }
+        { id: 'win_3x3', name: "3'×3' Fixed Window", price: 525, hasQty: true, maxQty: 10 },
+        { id: 'win_4x4', name: "4'×4' Slider Window", price: 695, hasQty: true, maxQty: 10 }
       ]},
       { cat: 'Insulation', items: [
         { id: 'wall_insulation', name: "Wall Insulation", price: 2500 },
@@ -430,6 +430,7 @@
       ]},
       { cat: 'Options', items: [
         { id: 'gutters', name: "Gutters & Downspouts", price: 1890 },
+        { id: 'wainscot', name: "Wainscot Siding (3' tall)", price: 1200, hasQty: true, maxQty: 4, note: 'Per wall' },
         { id: 'concrete_slab', name: "Concrete Slab (4\" w/ rebar)", price: 0, perSqFt: 8, note: 'Price based on building size' }
       ]}
     ];
@@ -540,14 +541,14 @@
       total += state.doors.rollUp12.qty * 2890;
       total += state.doors.walkthrough.qty * 1045;
 
-      // Add selected add-ons
+      // Add selected add-ons (quantity stored directly in state.addons[id])
       ADDONS.forEach(cat => {
         cat.items.forEach(item => {
-          if (state.addons[item.id]) {
+          const qty = state.addons[item.id] || 0;
+          if (qty > 0 && !item.id.startsWith('door_')) {
             if (item.perSqFt) {
               total += item.perSqFt * size.sqft;
-            } else if (!item.id.startsWith('door_')) {
-              const qty = state.addons[item.id + '_qty'] || 1;
+            } else {
               total += item.price * qty;
             }
           }
@@ -947,11 +948,34 @@
                 <h3 class="font-bold text-lg mb-3 text-[#003057]">${category.cat}</h3>
                 <div class="space-y-3">
                   ${category.items.filter(item => !item.id.startsWith('door_')).map(item => {
-                    const selected = state.addons[item.id];
+                    const qty = state.addons[item.id] || 0;
+                    const selected = qty > 0;
                     let priceDisplay = formatCurrency(item.price);
                     if (item.perSqFt) {
                       priceDisplay = formatCurrency(item.perSqFt * size.sqft) + ` ($${item.perSqFt}/sq ft)`;
                     }
+
+                    // Items with quantity controls
+                    if (item.hasQty) {
+                      return `
+                        <div class="flex items-center justify-between p-3 rounded-lg border-2 ${selected ? 'border-[#05c3de] bg-[#e0f7fa]' : 'border-gray-200 bg-white'}">
+                          <div class="flex-1">
+                            <span class="font-semibold">${item.name}</span>
+                            ${item.note ? `<span class="text-gray-500 text-sm ml-2">(${item.note})</span>` : ''}
+                            <div class="text-[#003057] font-bold text-sm">${priceDisplay} each</div>
+                          </div>
+                          <div class="flex items-center gap-3">
+                            <button onclick="adjustAddon('${item.id}', -1, ${item.maxQty || 10})"
+                                    class="w-9 h-9 rounded-full bg-gray-200 font-bold text-lg ${qty === 0 ? 'opacity-50' : ''}">−</button>
+                            <span class="text-xl font-bold w-6 text-center">${qty}</span>
+                            <button onclick="adjustAddon('${item.id}', 1, ${item.maxQty || 10})"
+                                    class="w-9 h-9 rounded-full bg-[#05c3de] text-white font-bold text-lg">+</button>
+                          </div>
+                        </div>
+                      `;
+                    }
+
+                    // Toggle items (yes/no)
                     return `
                       <div class="flex items-center justify-between p-3 rounded-lg border-2 ${selected ? 'border-[#05c3de] bg-[#e0f7fa]' : 'border-gray-200 bg-white'}">
                         <div class="flex-1">
@@ -1005,9 +1029,11 @@
 
       ADDONS.forEach(cat => {
         cat.items.forEach(item => {
-          if (state.addons[item.id] && !item.id.startsWith('door_')) {
-            let price = item.perSqFt ? item.perSqFt * size.sqft : item.price;
-            lineItems.push({ name: item.name, price });
+          const qty = state.addons[item.id] || 0;
+          if (qty > 0 && !item.id.startsWith('door_')) {
+            let price = item.perSqFt ? item.perSqFt * size.sqft : item.price * qty;
+            const displayName = qty > 1 ? `${item.name} × ${qty}` : item.name;
+            lineItems.push({ name: displayName, price });
           }
         });
       });
@@ -1760,7 +1786,14 @@
     }
 
     function toggleAddon(id) {
-      state.addons[id] = !state.addons[id];
+      // Toggle between 0 and 1 for non-qty items
+      state.addons[id] = state.addons[id] ? 0 : 1;
+      render();
+    }
+
+    function adjustAddon(id, delta, maxQty) {
+      const current = state.addons[id] || 0;
+      state.addons[id] = Math.max(0, Math.min(maxQty, current + delta));
       render();
     }
 
