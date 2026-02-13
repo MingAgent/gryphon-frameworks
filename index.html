@@ -3,25 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Burnett Customs - Metal Building Estimator</title>
+  <title>Gryphon FrameWorks - Metal Building Estimator</title>
 
   <!-- Open Graph / Social Media Preview -->
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://mingagent.github.io/burnett-metal-building-closer/">
-  <meta property="og:title" content="Burnett Customs - Metal Building Estimator">
+  <meta property="og:url" content="https://mingagent.github.io/gryphon-frameworks/">
+  <meta property="og:title" content="Gryphon FrameWorks - Metal Building Estimator">
   <meta property="og:description" content="Design your custom metal building and get an instant estimate. Pole barns, carports, and bolt-up construction.">
-  <meta property="og:image" content="https://mingagent.github.io/burnett-metal-building-closer/preview.png">
+  <meta property="og:image" content="https://mingagent.github.io/gryphon-frameworks/preview.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Burnett Customs - Metal Building Estimator">
+  <meta name="twitter:title" content="Gryphon FrameWorks - Metal Building Estimator">
   <meta name="twitter:description" content="Design your custom metal building and get an instant estimate.">
-  <meta name="twitter:image" content="https://mingagent.github.io/burnett-metal-building-closer/preview.png">
+  <meta name="twitter:image" content="https://mingagent.github.io/gryphon-frameworks/preview.png">
 
   <!-- General Meta -->
-  <meta name="description" content="Design your custom metal building and get an instant estimate. Pole barns, carports, and bolt-up construction from Burnett Customs.">
+  <meta name="description" content="Design your custom metal building and get an instant estimate. Pole barns, carports, and bolt-up construction from Gryphon FrameWorks.">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
@@ -320,6 +320,92 @@
       padding-top: 10px;
       border-top: 1px dashed #9ca3af;
     }
+
+    /* Building Profile Door Interactivity */
+    .door-element {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .door-element:hover rect {
+      filter: brightness(1.2);
+      stroke-width: 3;
+    }
+    .door-element:hover {
+      filter: drop-shadow(0 0 6px rgba(5, 195, 222, 0.8));
+    }
+    .door-element.selected rect {
+      stroke: #05c3de;
+      stroke-width: 4;
+      filter: drop-shadow(0 0 8px rgba(5, 195, 222, 1));
+    }
+
+    /* Tooltip for doors */
+    .door-tooltip {
+      position: absolute;
+      background: #003057;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .door-tooltip::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 6px solid #003057;
+    }
+
+    /* Door list item highlighting */
+    .door-list-item {
+      transition: all 0.2s ease;
+    }
+    .door-list-item.highlighted {
+      background: #e0f7fa !important;
+      border-color: #05c3de !important;
+      box-shadow: 0 0 0 2px rgba(5, 195, 222, 0.4);
+    }
+
+    /* Door entrance animation */
+    @keyframes doorFadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .door-element {
+      animation: doorFadeIn 0.3s ease-out forwards;
+    }
+    .door-element.dragging {
+      cursor: grabbing !important;
+      filter: drop-shadow(0 4px 12px rgba(5, 195, 222, 0.8));
+    }
+    .door-element.dragging rect {
+      stroke: #05c3de;
+      stroke-width: 4;
+    }
+
+    /* Tooltip animation */
+    @keyframes tooltipFadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .door-tooltip {
+      animation: tooltipFadeIn 0.15s ease-out forwards;
+    }
+
+    /* Building profile container */
+    .building-profile-container {
+      background: linear-gradient(to bottom, #f0f9ff, #e0f2fe);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    }
   </style>
 </head>
 <body class="bg-white min-h-screen">
@@ -354,6 +440,19 @@
         overhead: [], // Array of {size: '12x12', type: 'rollup', placement: 'gabled'}
         walkthrough301: 1, // Standard - always 1 included (additional can be purchased)
         extraWalkthrough: 0 // Additional walk-through doors beyond the standard 1
+      },
+
+      // Door positions on building profile (for drag & drop)
+      // Keys: "{doorId}-{view}" e.g., "overhead-0-front"
+      doorPositions: {},
+
+      // Building profile view (front, back, left, right)
+      buildingView: 'front',
+
+      // Breezeway options (auto-center doors on walls)
+      breezeway: {
+        frontBack: false,  // Center doors on front and back walls
+        sideSide: false    // Center doors on left and right walls
       },
 
       // Color selections
@@ -411,7 +510,7 @@
       ownerTypedName: '',
       ownerSigned: false,
       ownerSigData: null,  // Store signature image data
-      contractorTypedName: 'Bobby Burnett',
+      contractorTypedName: 'Gryphon FrameWorks',
       contractorSigned: false,
       contractorSigData: null,  // Store signature image data
       initialsData: {},  // Store initials image data by section ID
@@ -430,27 +529,141 @@
     const initialsPads = {};
 
     // ==================== LOGO SVG ====================
+    // Gryphon FrameWorks - Architectural Pillars Logo
     const LOGO_SVG = `
-      <svg viewBox="0 0 100 100" class="w-12 h-12">
-        <!-- Outer hexagon (dark blue) -->
-        <polygon points="50,2 93,27 93,73 50,98 7,73 7,27" fill="#003057" stroke="#003057" stroke-width="2"/>
-        <!-- Inner hexagon (cyan) -->
-        <polygon points="50,10 85,30 85,70 50,90 15,70 15,30" fill="#05c3de"/>
-        <!-- Letter B -->
-        <text x="30" y="62" font-family="Arial Black, sans-serif" font-size="32" font-weight="900" fill="#003057">B</text>
-        <!-- Letter C -->
-        <text x="52" y="62" font-family="Arial Black, sans-serif" font-size="32" font-weight="900" fill="#003057">C</text>
+      <svg viewBox="0 0 200 100" class="h-12" style="width: auto;">
+        <!-- Three Architectural Pillars -->
+        <g id="pillars">
+          <!-- Left Pillar -->
+          <rect x="20" y="20" width="16" height="60" fill="#003057"/>
+          <rect x="18" y="15" width="20" height="8" fill="#05c3de"/>
+          <rect x="18" y="77" width="20" height="8" fill="#05c3de"/>
+          <!-- Center Pillar (taller) -->
+          <rect x="44" y="10" width="20" height="70" fill="#003057"/>
+          <rect x="42" y="5" width="24" height="8" fill="#05c3de"/>
+          <rect x="42" y="77" width="24" height="8" fill="#05c3de"/>
+          <!-- Right Pillar -->
+          <rect x="72" y="20" width="16" height="60" fill="#003057"/>
+          <rect x="70" y="15" width="20" height="8" fill="#05c3de"/>
+          <rect x="70" y="77" width="20" height="8" fill="#05c3de"/>
+          <!-- Connecting Base -->
+          <rect x="15" y="85" width="80" height="5" fill="#003057"/>
+        </g>
+        <!-- GRYPHON Text -->
+        <text x="105" y="45" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="900" fill="#003057" letter-spacing="2">GRYPHON</text>
+        <!-- FRAMEWORKS Text -->
+        <text x="105" y="70" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#05c3de" letter-spacing="4">FRAMEWORKS</text>
       </svg>
     `;
 
     const LOGO_SVG_SMALL = `
-      <svg viewBox="0 0 100 100" class="w-8 h-8">
-        <polygon points="50,2 93,27 93,73 50,98 7,73 7,27" fill="#003057" stroke="#003057" stroke-width="2"/>
-        <polygon points="50,10 85,30 85,70 50,90 15,70 15,30" fill="#05c3de"/>
-        <text x="30" y="62" font-family="Arial Black, sans-serif" font-size="32" font-weight="900" fill="#003057">B</text>
-        <text x="52" y="62" font-family="Arial Black, sans-serif" font-size="32" font-weight="900" fill="#003057">C</text>
+      <svg viewBox="0 0 180 80" class="h-8" style="width: auto;">
+        <!-- Three Architectural Pillars (compact) -->
+        <g id="pillars-small">
+          <!-- Left Pillar -->
+          <rect x="8" y="16" width="10" height="44" fill="#003057"/>
+          <rect x="6" y="12" width="14" height="5" fill="#05c3de"/>
+          <rect x="6" y="58" width="14" height="5" fill="#05c3de"/>
+          <!-- Center Pillar (taller) -->
+          <rect x="24" y="8" width="12" height="52" fill="#003057"/>
+          <rect x="22" y="4" width="16" height="5" fill="#05c3de"/>
+          <rect x="22" y="58" width="16" height="5" fill="#05c3de"/>
+          <!-- Right Pillar -->
+          <rect x="42" y="16" width="10" height="44" fill="#003057"/>
+          <rect x="40" y="12" width="14" height="5" fill="#05c3de"/>
+          <rect x="40" y="58" width="14" height="5" fill="#05c3de"/>
+          <!-- Connecting Base -->
+          <rect x="4" y="63" width="54" height="4" fill="#003057"/>
+        </g>
+        <!-- GRYPHON Text -->
+        <text x="65" y="38" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="900" fill="#003057" letter-spacing="1">GRYPHON</text>
+        <!-- FRAMEWORKS Text -->
+        <text x="65" y="56" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="600" fill="#05c3de" letter-spacing="3">FRAMEWORKS</text>
       </svg>
     `;
+
+    // ==================== SVG ICONS (No Emojis) ====================
+
+    // Building Type Icons - Professional architectural SVGs
+    const ICON_POLE_BARN = `<svg viewBox="0 0 48 48" class="w-12 h-12" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="8" y="20" width="4" height="22" fill="#05c3de"/>
+      <rect x="36" y="20" width="4" height="22" fill="#05c3de"/>
+      <rect x="20" y="24" width="8" height="18" fill="#003057" stroke="#05c3de" stroke-width="1"/>
+      <path d="M6 22 L24 8 L42 22" stroke="#05c3de" stroke-width="3" fill="none"/>
+      <path d="M10 20 L24 10 L38 20" fill="#003057"/>
+      <line x1="24" y1="10" x2="24" y2="20" stroke="#05c3de" stroke-width="2"/>
+    </svg>`;
+
+    const ICON_CARPORT = `<svg viewBox="0 0 48 48" class="w-12 h-12" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="6" y="18" width="4" height="24" fill="#05c3de"/>
+      <rect x="38" y="18" width="4" height="24" fill="#05c3de"/>
+      <path d="M4 20 L24 8 L44 20" stroke="#05c3de" stroke-width="3" fill="none"/>
+      <path d="M8 18 L24 9 L40 18" fill="#003057"/>
+      <ellipse cx="16" cy="38" rx="5" ry="5" fill="#003057" stroke="#05c3de" stroke-width="1.5"/>
+      <ellipse cx="32" cy="38" rx="5" ry="5" fill="#003057" stroke="#05c3de" stroke-width="1.5"/>
+      <rect x="12" y="32" width="24" height="6" rx="2" fill="#003057"/>
+      <rect x="10" y="34" width="8" height="3" fill="#05c3de"/>
+      <rect x="30" y="34" width="8" height="3" fill="#05c3de"/>
+    </svg>`;
+
+    const ICON_BOLT_UP = `<svg viewBox="0 0 48 48" class="w-12 h-12" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="8" y="14" width="32" height="28" fill="#003057" stroke="#05c3de" stroke-width="2"/>
+      <rect x="12" y="18" width="8" height="8" fill="#05c3de" opacity="0.6"/>
+      <rect x="28" y="18" width="8" height="8" fill="#05c3de" opacity="0.6"/>
+      <rect x="18" y="30" width="12" height="12" fill="#05c3de"/>
+      <line x1="24" y1="30" x2="24" y2="42" stroke="#003057" stroke-width="1"/>
+      <circle cx="12" cy="18" r="1.5" fill="#05c3de"/>
+      <circle cx="36" cy="18" r="1.5" fill="#05c3de"/>
+      <circle cx="12" cy="38" r="1.5" fill="#05c3de"/>
+      <circle cx="36" cy="38" r="1.5" fill="#05c3de"/>
+      <rect x="6" y="10" width="36" height="4" fill="#05c3de"/>
+    </svg>`;
+
+    // Warning/Alert Icon
+    const ICON_WARNING = `<svg viewBox="0 0 20 20" class="w-5 h-5 inline-block" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 2 L18 16 L2 16 Z" fill="#f97316" stroke="#ea580c" stroke-width="1"/>
+      <line x1="10" y1="7" x2="10" y2="11" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="10" cy="13.5" r="1" fill="white"/>
+    </svg>`;
+
+    // Contract Section Icons
+    const ICON_USER = `<svg viewBox="0 0 24 24" class="w-6 h-6 inline-block" fill="#003057"><circle cx="12" cy="8" r="4"/><path d="M12 14c-5 0-8 2.5-8 5v1h16v-1c0-2.5-3-5-8-5z"/></svg>`;
+    const ICON_BOOK = `<svg viewBox="0 0 24 24" class="w-6 h-6 inline-block" fill="#003057"><path d="M4 4h6c1.1 0 2 .9 2 2v14l-1-1H4V4zm16 0h-6c-1.1 0-2 .9-2 2v14l1-1h7V4z"/></svg>`;
+    const ICON_MONEY = `<svg viewBox="0 0 24 24" class="w-6 h-6 inline-block" fill="#003057"><circle cx="12" cy="12" r="10" fill="none" stroke="#003057" stroke-width="2"/><path d="M12 6v12M9 9c0-1.5 1.5-2 3-2s3 .5 3 2-1.5 2-3 2-3 .5-3 2 1.5 2 3 2 3-.5 3-2"/></svg>`;
+    const ICON_CALENDAR = `<svg viewBox="0 0 24 24" class="w-6 h-6 inline-block" fill="#003057"><rect x="3" y="4" width="18" height="18" rx="2" fill="none" stroke="#003057" stroke-width="2"/><line x1="3" y1="10" x2="21" y2="10" stroke="#003057" stroke-width="2"/><line x1="8" y1="2" x2="8" y2="6" stroke="#003057" stroke-width="2"/><line x1="16" y1="2" x2="16" y2="6" stroke="#003057" stroke-width="2"/></svg>`;
+    const ICON_WRENCH = `<svg viewBox="0 0 24 24" class="w-6 h-6 inline-block" fill="#003057"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9l-4.3-4.3c-1.1 2.4-.7 5.4 1.3 7.4 1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.4-.4.4-1 0-1.4z"/></svg>`;
+    const ICON_SHIELD = `<svg viewBox="0 0 24 24" class="w-6 h-6 inline-block" fill="#003057"><path d="M12 2L4 6v6c0 5.5 3.4 10.3 8 12 4.6-1.7 8-6.5 8-12V6l-8-4z"/></svg>`;
+    const ICON_SCALE = `<svg viewBox="0 0 24 24" class="w-6 h-6 inline-block" fill="#003057"><path d="M12 3v18M5 8l7-3 7 3M5 8v4c0 1.7 2 3 4 3h6c2 0 4-1.3 4-3V8"/><circle cx="5" cy="8" r="2"/><circle cx="19" cy="8" r="2"/></svg>`;
+    const ICON_PEN = `<svg viewBox="0 0 24 24" class="w-6 h-6 inline-block" fill="#003057"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>`;
+    const ICON_CHECK = `<svg viewBox="0 0 20 20" class="w-5 h-5 inline-block" fill="#16a34a"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>`;
+    const ICON_CHECK_CIRCLE = `<svg viewBox="0 0 24 24" class="w-6 h-6 inline-block" fill="#16a34a"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" fill="none"/></svg>`;
+    const ICON_CONSTRUCTION = `<svg viewBox="0 0 48 48" class="w-12 h-12" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="8" y="32" width="32" height="4" fill="#05c3de"/>
+      <rect x="12" y="20" width="4" height="12" fill="#003057"/>
+      <rect x="32" y="20" width="4" height="12" fill="#003057"/>
+      <path d="M10 22 L24 12 L38 22" stroke="#05c3de" stroke-width="3" fill="none"/>
+      <rect x="20" y="24" width="8" height="8" fill="#05c3de" opacity="0.7"/>
+    </svg>`;
+
+    // Additional UI Icons
+    const ICON_DOWNLOAD = `<svg viewBox="0 0 20 20" class="w-5 h-5 inline-block" fill="currentColor"><path d="M10 3a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V4a1 1 0 011-1z"/><path d="M3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>`;
+    const ICON_CLIPBOARD = `<svg viewBox="0 0 20 20" class="w-5 h-5 inline-block" fill="currentColor"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/></svg>`;
+    const ICON_PRINT = `<svg viewBox="0 0 20 20" class="w-5 h-5 inline-block" fill="currentColor"><path d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z"/></svg>`;
+    const ICON_DOOR = `<svg viewBox="0 0 24 24" class="w-6 h-6 inline-block" fill="#003057"><rect x="5" y="2" width="14" height="20" rx="1" stroke="#003057" stroke-width="2" fill="none"/><circle cx="16" cy="12" r="1.5" fill="#003057"/></svg>`;
+
+    // Simple checkmark for inline text (non-emoji)
+    const CHECK_MARK = `<svg viewBox="0 0 12 12" class="w-3 h-3 inline-block" fill="currentColor"><path d="M10 3L4.5 8.5 2 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    const CHECK_MARK_GREEN = `<svg viewBox="0 0 12 12" class="w-3 h-3 inline-block" fill="#16a34a"><path d="M10 3L4.5 8.5 2 6" stroke="#16a34a" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+    // Additional Action Icons
+    const ICON_EMAIL = `<svg viewBox="0 0 20 20" class="w-5 h-5 inline-block" fill="currentColor"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/></svg>`;
+    const ICON_ROLLUP = `<svg viewBox="0 0 24 24" class="w-6 h-6 inline-block" fill="#003057"><rect x="4" y="4" width="16" height="16" rx="1" stroke="#05c3de" stroke-width="2" fill="none"/><line x1="4" y1="8" x2="20" y2="8" stroke="#05c3de" stroke-width="1.5"/><line x1="4" y1="12" x2="20" y2="12" stroke="#05c3de" stroke-width="1.5"/><line x1="4" y1="16" x2="20" y2="16" stroke="#05c3de" stroke-width="1.5"/><path d="M12 4v-2M12 22v-2" stroke="#003057" stroke-width="2"/></svg>`;
+    const ICON_SECTIONAL = `<svg viewBox="0 0 24 24" class="w-6 h-6 inline-block" fill="#003057"><rect x="4" y="4" width="16" height="16" rx="1" stroke="#05c3de" stroke-width="2" fill="none"/><rect x="6" y="6" width="5" height="5" fill="#05c3de" opacity="0.5"/><rect x="13" y="6" width="5" height="5" fill="#05c3de" opacity="0.5"/><rect x="6" y="13" width="5" height="5" fill="#05c3de" opacity="0.5"/><rect x="13" y="13" width="5" height="5" fill="#05c3de" opacity="0.5"/></svg>`;
+    const ICON_EDIT = `<svg viewBox="0 0 20 20" class="w-4 h-4 inline-block" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>`;
+    const ICON_TRASH = `<svg viewBox="0 0 20 20" class="w-4 h-4 inline-block" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>`;
+    const ICON_PLUS = `<svg viewBox="0 0 20 20" class="w-5 h-5 inline-block" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>`;
+    const ICON_LOCATION = `<svg viewBox="0 0 20 20" class="w-5 h-5 inline-block" fill="currentColor"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>`;
+    const ICON_CREDIT_CARD = `<svg viewBox="0 0 20 20" class="w-5 h-5 inline-block" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/></svg>`;
 
     // ==================== DATA ====================
 
@@ -460,21 +673,21 @@
         name: 'Pole Barn',
         desc: 'Weld-Up Construction',
         color: '#003057',
-        icon: '🏗️',
+        icon: ICON_POLE_BARN,
         hasFixedPricing: true
       },
       carport: {
         name: 'Carport',
         desc: 'Covered Structure',
         color: '#22c55e',
-        icon: '🚗',
+        icon: ICON_CARPORT,
         hasFixedPricing: true
       },
       boltUp: {
         name: 'Bolt-Up Construction',
         desc: 'Engineered Steel Building',
         color: '#05c3de',
-        icon: '🏢',
+        icon: ICON_BOLT_UP,
         hasFixedPricing: false,
         note: 'Custom Quote Required'
       }
@@ -654,14 +867,14 @@
 
     // 7 Contract sections (consolidated from 19)
     const CONTRACT_SECTIONS = [
-      { id: 'info', title: 'Customer Information', icon: '👤', requiresAck: false },
-      { id: 'projectOverview', title: '1. Project Overview', icon: '📖', requiresAck: true },
-      { id: 'paymentTerms', title: '2. Payment Terms', icon: '💰', requiresAck: true },
-      { id: 'timeline', title: '3. Timeline & Changes', icon: '📅', requiresAck: true },
-      { id: 'responsibilities', title: '4. Responsibilities', icon: '🔧', requiresAck: true },
-      { id: 'warranties', title: '5. Warranties & Insurance', icon: '🛡️', requiresAck: true },
-      { id: 'legalProvisions', title: '6. Legal Provisions', icon: '⚖️', requiresAck: true },
-      { id: 'signatures', title: '7. Final Acknowledgment', icon: '✍️', requiresAck: false }
+      { id: 'info', title: 'Customer Information', icon: ICON_USER, requiresAck: false },
+      { id: 'projectOverview', title: '1. Project Overview', icon: ICON_BOOK, requiresAck: true },
+      { id: 'paymentTerms', title: '2. Payment Terms', icon: ICON_MONEY, requiresAck: true },
+      { id: 'timeline', title: '3. Timeline & Changes', icon: ICON_CALENDAR, requiresAck: true },
+      { id: 'responsibilities', title: '4. Responsibilities', icon: ICON_WRENCH, requiresAck: true },
+      { id: 'warranties', title: '5. Warranties & Insurance', icon: ICON_SHIELD, requiresAck: true },
+      { id: 'legalProvisions', title: '6. Legal Provisions', icon: ICON_SCALE, requiresAck: true },
+      { id: 'signatures', title: '7. Final Acknowledgment', icon: ICON_PEN, requiresAck: false }
     ];
 
     // Bill of Materials generator
@@ -1149,6 +1362,596 @@
       }
     }
 
+    // ==================== BUILDING PROFILE VISUALIZATION ====================
+
+    // Render the building profile SVG for door placement preview
+    function renderBuildingProfile() {
+      if (!state.buildingSize || !state.eaveHeight) {
+        return `<div class="bg-gray-100 rounded-xl p-6 text-center border-2 border-dashed border-gray-300">
+          <p class="text-gray-500">Select building size and eave height to see preview</p>
+        </div>`;
+      }
+
+      const size = BUILDING_SIZES.find(s => s.id === state.buildingSize);
+      const eaveHeight = parseInt(state.eaveHeight);
+      const currentView = state.buildingView || 'front';
+
+      // Parse dimensions from size label (e.g., "30' × 40'" → width=30, depth=40)
+      const dims = size.label.replace(/'/g, '').split(' × ');
+      const buildingWidthFt = parseInt(dims[0]);  // Gabled end width
+      const buildingDepthFt = parseInt(dims[1]);  // Eave side depth
+
+      // Determine which dimension to show based on view
+      const isFrontBack = currentView === 'front' || currentView === 'back';
+      const viewWidthFt = isFrontBack ? buildingWidthFt : buildingDepthFt;
+      const viewLabel = isFrontBack ? `${buildingWidthFt}' Wide (Gabled End)` : `${buildingDepthFt}' Deep (Eave Side)`;
+
+      // SVG viewBox dimensions (scale building to fit)
+      const svgWidth = 400;
+      const svgHeight = 280;
+      const margin = 40;
+      const groundY = svgHeight - 50;
+
+      // Scale factor: fit building view width within SVG
+      const maxBuildingWidth = svgWidth - margin * 2;
+      const scale = maxBuildingWidth / viewWidthFt;
+      const scaledWidth = viewWidthFt * scale;
+      const scaledHeight = Math.min(eaveHeight * scale * 1.5, svgHeight - 120); // Cap height
+
+      // Roof pitch: 3:12 for gabled end, flat for eave side
+      const roofPitch = isFrontBack ? 0.125 : 0;
+      const roofRise = (scaledWidth / 2) * roofPitch;
+
+      // Building position
+      const buildingX = margin;
+      const buildingY = groundY - scaledHeight;
+
+      // Get selected colors
+      const wallColor = COLOR_OPTIONS.panels.find(c => c.id === state.colors.wallPanels)?.hex || '#ffffff';
+      const roofColor = COLOR_OPTIONS.panels.find(c => c.id === state.colors.roofPanels)?.hex || '#ffffff';
+      const trimColor = COLOR_OPTIONS.trim.find(c => c.id === state.colors.trim)?.hex || '#003057';
+
+      // Calculate all doors
+      const allDoors = [];
+
+      // Standard walk-through door (always present)
+      allDoors.push({
+        type: 'walkthrough',
+        width: 3,
+        height: 7,
+        label: '3×7 Walk-Through',
+        placement: 'gabled',
+        id: 'standard-walkthrough'
+      });
+
+      // Additional walk-through doors
+      for (let i = 0; i < (state.doors.extraWalkthrough || 0); i++) {
+        allDoors.push({
+          type: 'walkthrough',
+          width: 3,
+          height: 7,
+          label: '3×7 Walk-Through',
+          placement: 'gabled',
+          id: `extra-walkthrough-${i}`
+        });
+      }
+
+      // Overhead doors
+      (state.doors.overhead || []).forEach((door, idx) => {
+        allDoors.push({
+          type: 'overhead',
+          width: door.width || parseInt(door.size?.split('x')[1]) || 10,
+          height: door.height || parseInt(door.size?.split('x')[0]) || 10,
+          doorType: door.type,
+          placement: door.placement || 'gabled',
+          label: `${door.height || door.size?.split('x')[0]}'×${door.width || door.size?.split('x')[1]}' ${door.type === 'rollup' ? 'Roll-Up' : 'Sectional'}`,
+          id: `overhead-${idx}`
+        });
+      });
+
+      // Position doors on the building based on current view
+      const gabledDoors = allDoors.filter(d => d.placement === 'gabled');
+      const sideDoors = allDoors.filter(d => d.placement === 'eave');
+
+      // Select doors to show based on current view
+      const doorsForView = isFrontBack ? gabledDoors : sideDoors;
+
+      // Calculate clearance (2'-6" = 2.5 ft from posts)
+      const clearanceFt = 2.5;
+      const clearancePixels = clearanceFt * scale;
+
+      // Render door SVGs for current view
+      let doorSVGs = '';
+      let doorLabelSVGs = '';
+      const totalViewDoorsWidth = doorsForView.reduce((sum, d) => sum + d.width, 0);
+      const totalDoorsScaledWidth = totalViewDoorsWidth * scale * 0.8 + (doorsForView.length - 1) * 10; // doors + gaps
+
+      // Start position respecting 2'-6" clearance from left post
+      // Center doors in the valid zone between left clearance and center post clearance
+      const leftValidStart = buildingX + clearancePixels;
+      const centerPostX = buildingX + scaledWidth / 2;
+      const leftZoneEnd = centerPostX - clearancePixels;
+
+      // If doors fit in left zone, center them there; otherwise distribute across valid zones
+      let doorX;
+      if (totalDoorsScaledWidth <= leftZoneEnd - leftValidStart) {
+        // Center in left zone
+        doorX = leftValidStart + (leftZoneEnd - leftValidStart - totalDoorsScaledWidth) / 2;
+      } else {
+        // Start at left valid position
+        doorX = leftValidStart;
+      }
+
+      doorsForView.forEach((door, idx) => {
+        const doorScaledWidth = door.width * scale * 0.8;
+        const doorScaledHeight = Math.min(door.height * scale * 1.2, scaledHeight * 0.85);
+        const doorY = groundY - doorScaledHeight;
+
+        // Check for saved position (view-specific key), otherwise use calculated default
+        const positionKey = `${door.id}-${currentView}`;
+        const savedX = state.doorPositions && state.doorPositions[positionKey];
+        const actualDoorX = savedX !== undefined ? savedX : doorX;
+
+        const fillColor = door.type === 'walkthrough' ? '#8B4513' : '#505050';
+        const strokeColor = trimColor;
+
+        const tooltipText = door.type === 'walkthrough'
+          ? `${door.width}' × ${door.height}' Walk-Through — Drag to reposition`
+          : `${door.height}' × ${door.width}' ${door.doorType === 'rollup' ? 'Roll-Up' : 'Sectional'} — Drag to reposition`;
+
+        doorSVGs += `
+          <g class="door-element" data-door-id="${door.id}" data-tooltip="${tooltipText}" style="cursor: grab;"
+             onmouseenter="showDoorTooltip(event, this)" onmouseleave="hideDoorTooltip()"
+             onmousedown="startDoorDrag(event, this)"
+             ontouchstart="startDoorDrag(event, this)">
+            <rect x="${actualDoorX}" y="${doorY}" width="${doorScaledWidth}" height="${doorScaledHeight}"
+                  fill="${fillColor}" stroke="${strokeColor}" stroke-width="2" rx="2"/>`;
+
+        // Add door details
+        if (door.type === 'walkthrough') {
+          // Door handle
+          doorSVGs += `<circle cx="${actualDoorX + doorScaledWidth - 8}" cy="${doorY + doorScaledHeight/2}" r="3" fill="#FFD700" pointer-events="none"/>`;
+        } else {
+          // Overhead door panels
+          const panelCount = 4;
+          for (let p = 1; p < panelCount; p++) {
+            const panelY = doorY + (doorScaledHeight / panelCount) * p;
+            doorSVGs += `<line x1="${actualDoorX + 2}" y1="${panelY}" x2="${actualDoorX + doorScaledWidth - 2}" y2="${panelY}" stroke="${strokeColor}" stroke-width="1" pointer-events="none"/>`;
+          }
+        }
+
+        doorSVGs += `</g>`;
+
+        // Door label (follows the door position)
+        doorLabelSVGs += `
+          <text x="${actualDoorX + doorScaledWidth/2}" y="${groundY + 20}"
+                font-size="9" fill="#003057" text-anchor="middle" font-family="Arial, sans-serif">
+            ${door.width}'×${door.height}'
+          </text>`;
+
+        // Move default position for next door
+        doorX += doorScaledWidth + 10;
+      });
+
+      // Building type specific elements
+      let buildingTypeElements = '';
+
+      // Calculate clearance zones (2'-6" = 2.5 ft from posts)
+      const clearanceFt = 2.5;
+      const clearancePixels = clearanceFt * scale;
+      const postWidth = 8;
+
+      // Post positions
+      const leftPostX = buildingX;
+      const centerPostX = buildingX + scaledWidth / 2;
+      const rightPostX = buildingX + scaledWidth;
+
+      // Clearance zone indicators (shown for all building types)
+      const clearanceZones = `
+        <!-- Post clearance zones (2'-6" rule) - shown as subtle red zones -->
+        <rect x="${leftPostX}" y="${groundY - scaledHeight * 0.9}" width="${clearancePixels}"
+              height="${scaledHeight * 0.9}" fill="#ef4444" opacity="0.15"/>
+        <rect x="${centerPostX - clearancePixels/2}" y="${groundY - scaledHeight * 0.9}" width="${clearancePixels}"
+              height="${scaledHeight * 0.9}" fill="#ef4444" opacity="0.15"/>
+        <rect x="${rightPostX - clearancePixels}" y="${groundY - scaledHeight * 0.9}" width="${clearancePixels}"
+              height="${scaledHeight * 0.9}" fill="#ef4444" opacity="0.15"/>
+
+        <!-- Post position markers -->
+        <line x1="${leftPostX}" y1="${groundY}" x2="${leftPostX}" y2="${groundY - scaledHeight}"
+              stroke="#8B4513" stroke-width="4" stroke-dasharray="4,2"/>
+        <line x1="${centerPostX}" y1="${groundY}" x2="${centerPostX}" y2="${groundY - scaledHeight}"
+              stroke="#8B4513" stroke-width="4" stroke-dasharray="4,2"/>
+        <line x1="${rightPostX}" y1="${groundY}" x2="${rightPostX}" y2="${groundY - scaledHeight}"
+              stroke="#8B4513" stroke-width="4" stroke-dasharray="4,2"/>
+
+        <!-- Clearance labels -->
+        <text x="${leftPostX + clearancePixels/2}" y="${groundY - 5}"
+              font-size="7" fill="#ef4444" text-anchor="middle" font-family="Arial">2'6"</text>
+        <text x="${centerPostX}" y="${groundY - 5}"
+              font-size="7" fill="#ef4444" text-anchor="middle" font-family="Arial">2'6"</text>
+        <text x="${rightPostX - clearancePixels/2}" y="${groundY - 5}"
+              font-size="7" fill="#ef4444" text-anchor="middle" font-family="Arial">2'6"</text>
+      `;
+
+      if (state.buildingType === 'poleBarn') {
+        // Pole barn posts (more prominent)
+        buildingTypeElements = clearanceZones + `
+          <rect x="${leftPostX - postWidth/2 + 4}" y="${buildingY + 10}" width="${postWidth}" height="${scaledHeight - 10}" fill="#8B4513" opacity="0.8"/>
+          <rect x="${rightPostX - postWidth/2 - 4}" y="${buildingY + 10}" width="${postWidth}" height="${scaledHeight - 10}" fill="#8B4513" opacity="0.8"/>
+          <rect x="${centerPostX - postWidth/2}" y="${buildingY + 10}" width="${postWidth}" height="${scaledHeight - 10}" fill="#8B4513" opacity="0.8"/>
+        `;
+      } else if (state.buildingType === 'carport') {
+        // Carport with clearance zones
+        buildingTypeElements = clearanceZones + `
+          <line x1="${buildingX + 10}" y1="${buildingY}" x2="${buildingX + 10}" y2="${groundY}"
+                stroke="${trimColor}" stroke-width="3" stroke-dasharray="8,4"/>
+          <line x1="${buildingX + scaledWidth - 10}" y1="${buildingY}" x2="${buildingX + scaledWidth - 10}" y2="${groundY}"
+                stroke="${trimColor}" stroke-width="3" stroke-dasharray="8,4"/>
+        `;
+      } else {
+        // Default: just show clearance zones for structural posts
+        buildingTypeElements = clearanceZones;
+      }
+
+      return `
+        <div class="bg-gradient-to-b from-sky-100 to-sky-200 rounded-xl p-4 border border-gray-200">
+          <div class="flex items-center justify-center gap-2 mb-2">
+            <p class="text-xs text-gray-500 text-center">Drag doors to reposition</p>
+            <span class="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-medium">2'-6" min from posts</span>
+          </div>
+          <svg viewBox="0 0 ${svgWidth} ${svgHeight}" class="w-full" style="max-height: 280px;">
+            <!-- Sky gradient -->
+            <defs>
+              <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" style="stop-color:#87CEEB;stop-opacity:0.3"/>
+                <stop offset="100%" style="stop-color:#E0F4FF;stop-opacity:0.5"/>
+              </linearGradient>
+            </defs>
+            <rect x="0" y="0" width="${svgWidth}" height="${groundY}" fill="url(#skyGrad)"/>
+
+            <!-- Ground -->
+            <rect x="0" y="${groundY}" width="${svgWidth}" height="${svgHeight - groundY}" fill="#4a5568"/>
+            <line x1="0" y1="${groundY}" x2="${svgWidth}" y2="${groundY}" stroke="#2d3748" stroke-width="2"/>
+
+            <!-- View Label -->
+            <text x="${svgWidth / 2}" y="18"
+                  font-size="14" fill="#003057" text-anchor="middle" font-weight="bold" font-family="Arial, sans-serif">
+              ${currentView.charAt(0).toUpperCase() + currentView.slice(1)} ${isFrontBack ? 'Wall' : 'Side'}
+            </text>
+
+            <!-- Building walls -->
+            <rect x="${buildingX}" y="${buildingY}" width="${scaledWidth}" height="${scaledHeight}"
+                  fill="${wallColor}" stroke="${trimColor}" stroke-width="3"/>
+
+            <!-- Roof - peaked for front/back (gabled), flat for sides (eave) -->
+            ${isFrontBack ?
+              `<polygon points="${buildingX - 5},${buildingY} ${buildingX + scaledWidth/2},${buildingY - roofRise} ${buildingX + scaledWidth + 5},${buildingY}"
+                       fill="${roofColor}" stroke="${trimColor}" stroke-width="3"/>` :
+              `<rect x="${buildingX - 5}" y="${buildingY - 8}" width="${scaledWidth + 10}" height="10"
+                    fill="${roofColor}" stroke="${trimColor}" stroke-width="2"/>
+               <line x1="${buildingX - 5}" y1="${buildingY - 8}" x2="${buildingX + scaledWidth + 5}" y2="${buildingY - 8}"
+                     stroke="${trimColor}" stroke-width="3"/>`
+            }
+
+            <!-- Building type specific elements -->
+            ${buildingTypeElements}
+
+            <!-- Doors -->
+            ${doorSVGs}
+            ${doorsForView.length === 0 ? `
+              <text x="${svgWidth / 2}" y="${groundY - scaledHeight/2}"
+                    font-size="14" fill="#6b7280" text-anchor="middle" font-family="Arial, sans-serif">
+                No doors on this wall
+              </text>
+              <text x="${svgWidth / 2}" y="${groundY - scaledHeight/2 + 18}"
+                    font-size="11" fill="#9ca3af" text-anchor="middle" font-family="Arial, sans-serif">
+                Add ${isFrontBack ? 'gabled' : 'eave side'} doors above
+              </text>
+            ` : ''}
+
+            <!-- Dimension: Width -->
+            <g class="dimension-line">
+              <line x1="${buildingX}" y1="${groundY + 35}" x2="${buildingX + scaledWidth}" y2="${groundY + 35}"
+                    stroke="#003057" stroke-width="1.5" marker-start="url(#arrowStart)" marker-end="url(#arrowEnd)"/>
+              <text x="${buildingX + scaledWidth/2}" y="${groundY + 48}"
+                    font-size="12" fill="#003057" text-anchor="middle" font-weight="bold" font-family="Arial, sans-serif">
+                ${viewWidthFt}' ${isFrontBack ? 'Wide' : 'Deep'}
+              </text>
+            </g>
+
+            <!-- Dimension: Height -->
+            <g class="dimension-line">
+              <line x1="${buildingX + scaledWidth + 20}" y1="${groundY}" x2="${buildingX + scaledWidth + 20}" y2="${buildingY}"
+                    stroke="#003057" stroke-width="1.5"/>
+              <text x="${buildingX + scaledWidth + 30}" y="${buildingY + scaledHeight/2}"
+                    font-size="11" fill="#003057" font-weight="bold" font-family="Arial, sans-serif"
+                    transform="rotate(-90, ${buildingX + scaledWidth + 30}, ${buildingY + scaledHeight/2})">
+                ${eaveHeight}' Eave
+              </text>
+            </g>
+
+            <!-- Door labels -->
+            ${doorLabelSVGs}
+
+            <!-- Arrow markers -->
+            <defs>
+              <marker id="arrowStart" markerWidth="6" markerHeight="6" refX="0" refY="3" orient="auto">
+                <path d="M6,0 L0,3 L6,6" fill="none" stroke="#003057" stroke-width="1"/>
+              </marker>
+              <marker id="arrowEnd" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L6,3 L0,6" fill="none" stroke="#003057" stroke-width="1"/>
+              </marker>
+            </defs>
+          </svg>
+
+          <!-- Door Summary -->
+          <div class="mt-3 pt-3 border-t border-gray-200">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <p class="text-xs font-semibold text-gray-600">Configured Doors (${allDoors.length}):</p>
+              <div class="flex items-center gap-3 text-xs">
+                <span class="flex items-center gap-1">
+                  <span class="w-3 h-3 bg-red-200 rounded opacity-60"></span>
+                  <span class="text-gray-500">No-go zone (2'-6" from posts)</span>
+                </span>
+                <span class="flex items-center gap-1">
+                  <span class="w-3 h-3 bg-amber-700 rounded"></span>
+                  <span class="text-gray-500">Posts</span>
+                </span>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              ${allDoors.map(d => `
+                <span class="text-xs px-2 py-1 rounded ${d.type === 'walkthrough' ? 'bg-amber-100 text-amber-800' : 'bg-gray-200 text-gray-700'}">
+                  ${d.label}
+                </span>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Door interactivity functions
+    let activeDoorTooltip = null;
+    let selectedDoorId = null;
+    let isDraggingDoor = false;
+    let draggedDoorElement = null;
+    let dragStartX = 0;
+    let dragOffsetX = 0;
+
+    function startDoorDrag(event, element) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      isDraggingDoor = true;
+      draggedDoorElement = element;
+
+      const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+      const svg = element.closest('svg');
+      const svgRect = svg.getBoundingClientRect();
+      const doorRect = element.querySelector('rect');
+      const currentX = parseFloat(doorRect.getAttribute('x'));
+
+      // Calculate the offset from the mouse to the door's left edge
+      const svgX = (clientX - svgRect.left) * (svg.viewBox.baseVal.width / svgRect.width);
+      dragOffsetX = svgX - currentX;
+      dragStartX = currentX;
+
+      element.classList.add('dragging');
+      hideDoorTooltip();
+
+      // Add global event listeners
+      document.addEventListener('mousemove', handleDoorDrag);
+      document.addEventListener('mouseup', endDoorDrag);
+      document.addEventListener('touchmove', handleDoorDrag, { passive: false });
+      document.addEventListener('touchend', endDoorDrag);
+    }
+
+    // Door placement constants
+    const DOOR_POST_CLEARANCE_FT = 2.5; // 2'-6" minimum clearance from posts
+
+    function handleDoorDrag(event) {
+      if (!isDraggingDoor || !draggedDoorElement) return;
+
+      event.preventDefault();
+
+      const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+      const svg = draggedDoorElement.closest('svg');
+      const svgRect = svg.getBoundingClientRect();
+
+      // Convert screen coordinates to SVG coordinates
+      const svgX = (clientX - svgRect.left) * (svg.viewBox.baseVal.width / svgRect.width);
+      let newX = svgX - dragOffsetX;
+
+      // Get building boundaries and scale
+      const margin = 40;
+      const svgWidth = svg.viewBox.baseVal.width;
+      const doorRect = draggedDoorElement.querySelector('rect');
+      const doorWidth = parseFloat(doorRect.getAttribute('width'));
+
+      // Get building width from state for proper scaling
+      const size = BUILDING_SIZES.find(s => s.id === state.buildingSize);
+      const dims = size ? size.label.replace(/'/g, '').split(' × ') : [40, 60];
+      const buildingWidthFt = parseInt(dims[0]);
+      const scaledBuildingWidth = svgWidth - margin * 2;
+      const scale = scaledBuildingWidth / buildingWidthFt;
+
+      // Calculate clearance in SVG pixels (2'-6" = 2.5 ft)
+      const clearancePixels = DOOR_POST_CLEARANCE_FT * scale;
+
+      // Post positions (left edge, center, right edge)
+      const leftPostX = margin;
+      const centerPostX = margin + scaledBuildingWidth / 2;
+      const rightPostX = margin + scaledBuildingWidth;
+
+      // Valid zones: must be clearancePixels away from posts
+      // Left zone: from leftPost + clearance to centerPost - clearance - doorWidth
+      // Right zone: from centerPost + clearance to rightPost - clearance - doorWidth
+      const leftZoneMin = leftPostX + clearancePixels;
+      const leftZoneMax = centerPostX - clearancePixels - doorWidth;
+      const rightZoneMin = centerPostX + clearancePixels;
+      const rightZoneMax = rightPostX - clearancePixels - doorWidth;
+
+      // Constrain to valid zones with snap behavior
+      if (newX < leftZoneMin) {
+        newX = leftZoneMin;
+      } else if (newX > leftZoneMax && newX < rightZoneMin) {
+        // In the dead zone around center post - snap to nearest valid edge
+        if (newX - leftZoneMax < rightZoneMin - newX) {
+          newX = leftZoneMax;
+        } else {
+          newX = rightZoneMin;
+        }
+      } else if (newX > rightZoneMax) {
+        newX = rightZoneMax;
+      }
+
+      // Show warning indicator if near invalid zone
+      const warningIndicator = document.getElementById('door-placement-warning');
+      if (warningIndicator) {
+        const nearLeftPost = Math.abs(newX - leftPostX) < clearancePixels * 1.5;
+        const nearCenterPost = Math.abs(newX + doorWidth/2 - centerPostX) < clearancePixels * 1.5;
+        const nearRightPost = Math.abs(newX + doorWidth - rightPostX) < clearancePixels * 1.5;
+
+        if (nearLeftPost || nearCenterPost || nearRightPost) {
+          warningIndicator.style.display = 'block';
+        } else {
+          warningIndicator.style.display = 'none';
+        }
+      }
+
+      // Move all elements in the door group
+      const currentDoorX = parseFloat(doorRect.getAttribute('x'));
+      const deltaX = newX - currentDoorX;
+
+      // Update rect position
+      doorRect.setAttribute('x', newX);
+
+      // Update any child elements (door handle, panel lines)
+      draggedDoorElement.querySelectorAll('circle').forEach(circle => {
+        const cx = parseFloat(circle.getAttribute('cx'));
+        circle.setAttribute('cx', cx + deltaX);
+      });
+
+      draggedDoorElement.querySelectorAll('line').forEach(line => {
+        const x1 = parseFloat(line.getAttribute('x1'));
+        const x2 = parseFloat(line.getAttribute('x2'));
+        line.setAttribute('x1', x1 + deltaX);
+        line.setAttribute('x2', x2 + deltaX);
+      });
+    }
+
+    function endDoorDrag(event) {
+      if (!isDraggingDoor || !draggedDoorElement) return;
+
+      const doorId = draggedDoorElement.getAttribute('data-door-id');
+      const doorView = draggedDoorElement.getAttribute('data-view') || state.buildingView;
+      const doorRect = draggedDoorElement.querySelector('rect');
+      const finalX = parseFloat(doorRect.getAttribute('x'));
+
+      // Save the position to state with view-specific key
+      const positionKey = `${doorId}-${doorView}`;
+      state.doorPositions[positionKey] = finalX;
+
+      draggedDoorElement.classList.remove('dragging');
+
+      // Clean up
+      isDraggingDoor = false;
+      draggedDoorElement = null;
+
+      document.removeEventListener('mousemove', handleDoorDrag);
+      document.removeEventListener('mouseup', endDoorDrag);
+      document.removeEventListener('touchmove', handleDoorDrag);
+      document.removeEventListener('touchend', endDoorDrag);
+    }
+
+    function showDoorTooltip(event, element) {
+      // Remove any existing tooltip
+      hideDoorTooltip();
+
+      const tooltipText = element.getAttribute('data-tooltip');
+      if (!tooltipText) return;
+
+      const tooltip = document.createElement('div');
+      tooltip.className = 'door-tooltip';
+      tooltip.textContent = tooltipText;
+      tooltip.id = 'door-tooltip-active';
+      document.body.appendChild(tooltip);
+
+      // Position tooltip near the element
+      const rect = element.getBoundingClientRect();
+      const tooltipRect = tooltip.getBoundingClientRect();
+
+      // Position above the door element
+      let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+      let top = rect.top - tooltipRect.height - 10;
+
+      // Keep tooltip within viewport
+      if (left < 10) left = 10;
+      if (left + tooltipRect.width > window.innerWidth - 10) {
+        left = window.innerWidth - tooltipRect.width - 10;
+      }
+      if (top < 10) {
+        top = rect.bottom + 10; // Show below if not enough space above
+      }
+
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = top + 'px';
+
+      activeDoorTooltip = tooltip;
+    }
+
+    function hideDoorTooltip() {
+      if (activeDoorTooltip) {
+        activeDoorTooltip.remove();
+        activeDoorTooltip = null;
+      }
+      // Also remove by ID in case reference was lost
+      const existing = document.getElementById('door-tooltip-active');
+      if (existing) existing.remove();
+    }
+
+    function selectDoorElement(element) {
+      const doorId = element.getAttribute('data-door-id');
+
+      // Remove selection from previously selected door
+      document.querySelectorAll('.door-element.selected').forEach(el => {
+        el.classList.remove('selected');
+      });
+
+      // Toggle selection
+      if (selectedDoorId === doorId) {
+        selectedDoorId = null;
+      } else {
+        selectedDoorId = doorId;
+        element.classList.add('selected');
+
+        // Find and highlight corresponding door in the door list
+        highlightDoorInList(doorId);
+      }
+    }
+
+    function highlightDoorInList(doorId) {
+      // Remove previous highlights
+      document.querySelectorAll('.door-list-item.highlighted').forEach(el => {
+        el.classList.remove('highlighted');
+      });
+
+      // Find the door list item with matching data-door-id
+      const listItem = document.querySelector(`.door-list-item[data-door-id="${doorId}"]`);
+      if (listItem) {
+        listItem.classList.add('highlighted');
+        listItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    // Touch support for mobile
+    function handleDoorTouch(event, element) {
+      event.preventDefault();
+      showDoorTooltip(event.touches[0], element);
+      selectDoorElement(element);
+    }
+
     // ==================== RENDER FUNCTIONS ====================
     function render() {
       const app = document.getElementById('app');
@@ -1181,7 +1984,7 @@
             <div class="flex items-center gap-3">
               ${LOGO_SVG}
               <div>
-                <h1 class="text-xl font-bold text-[#003057]">Burnett Customs</h1>
+                <h1 class="text-xl font-bold text-[#003057]">Gryphon FrameWorks</h1>
                 <p class="text-[#003057] text-sm opacity-80">Metal Building Estimator</p>
               </div>
             </div>
@@ -1203,7 +2006,7 @@
                 <p class="text-gray-300 text-sm mt-1">${type.desc}</p>
                 ${type.hasFixedPricing ?
                   `<p class="text-[#04ceea] font-semibold mt-3">Starting at $26,500</p>` :
-                  `<p class="text-orange-400 font-semibold mt-3">⚠️ ${type.note}</p>`
+                  `<p class="text-orange-400 font-semibold mt-3">${ICON_WARNING} ${type.note}</p>`
                 }
               </div>
             `).join('')}
@@ -1227,7 +2030,7 @@
             <div class="flex items-center gap-3">
               ${LOGO_SVG}
               <div>
-                <h1 class="text-xl font-bold text-[#003057]">Burnett Customs</h1>
+                <h1 class="text-xl font-bold text-[#003057]">Gryphon FrameWorks</h1>
                 <p class="text-[#003057] text-sm opacity-80">Bolt-Up Construction - Custom Quote</p>
               </div>
             </div>
@@ -1236,7 +2039,7 @@
 
         <main class="max-w-2xl mx-auto p-4">
           <div class="bg-orange-50 border-2 border-orange-400 rounded-xl p-4 mb-6">
-            <p class="text-orange-800 font-semibold">⚠️ Bolt-Up Construction requires a custom quote</p>
+            <p class="text-orange-800 font-semibold">${ICON_WARNING} Bolt-Up Construction requires a custom quote</p>
             <p class="text-orange-700 text-sm mt-1">Pricing varies based on wind zone, snow zone, and engineering requirements. Please provide your specifications below.</p>
           </div>
 
@@ -1302,7 +2105,7 @@
               </button>
               <button onclick="submitBoltUpQuote()"
                       class="flex-1 py-3 px-6 rounded-xl font-semibold btn-primary">
-                📧 Request Quote
+                ${ICON_EMAIL} Request Quote
               </button>
             </div>
           </div>
@@ -1319,7 +2122,7 @@
             <div class="flex items-center gap-3">
               ${LOGO_SVG_SMALL}
               <div>
-                <h1 class="text-lg font-bold text-[#003057]">Burnett Customs</h1>
+                <h1 class="text-lg font-bold text-[#003057]">Gryphon FrameWorks</h1>
                 <p class="text-[#003057] text-sm opacity-80">${type.name}</p>
               </div>
             </div>
@@ -1371,7 +2174,7 @@
             <div class="flex items-center gap-3">
               ${LOGO_SVG_SMALL}
               <div>
-                <h1 class="text-lg font-bold text-[#003057]">Burnett Customs</h1>
+                <h1 class="text-lg font-bold text-[#003057]">Gryphon FrameWorks</h1>
                 <p class="text-[#003057] text-sm opacity-80">${type.name} - ${size.label}</p>
               </div>
             </div>
@@ -1434,7 +2237,7 @@
             <div class="flex items-center gap-3">
               ${LOGO_SVG_SMALL}
               <div>
-                <h1 class="text-lg font-bold text-[#003057]">Burnett Customs</h1>
+                <h1 class="text-lg font-bold text-[#003057]">Gryphon FrameWorks</h1>
                 <p class="text-[#003057] text-sm opacity-80">${type.name} - ${size.label} × ${eave.label}</p>
               </div>
             </div>
@@ -1457,7 +2260,7 @@
             <div class="border-b pb-6">
               <div class="flex items-center justify-between mb-2">
                 <div>
-                  <h3 class="font-bold text-lg text-green-700">✓ 3070 Walk-Through Door</h3>
+                  <h3 class="font-bold text-lg text-green-700 flex items-center gap-2">${CHECK_MARK_GREEN} 3070 Walk-Through Door</h3>
                   <p class="text-green-600 text-sm font-medium">INCLUDED STANDARD (3' × 7')</p>
                 </div>
                 <div class="bg-green-100 text-green-800 px-4 py-2 rounded-lg font-bold">
@@ -1487,7 +2290,7 @@
               <h3 class="font-bold text-lg mb-2">Overhead Doors</h3>
               <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
                 <p class="text-amber-800 text-sm">
-                  <strong>⚠️ Door Height Rule:</strong> Maximum door height is <strong>${eaveHeight - ADMIN_CONFIG.doorHeightClearance} ft</strong>
+                  <strong>${ICON_WARNING} Door Height Rule:</strong> Maximum door height is <strong>${eaveHeight - ADMIN_CONFIG.doorHeightClearance} ft</strong>
                   (${ADMIN_CONFIG.doorHeightClearance} ft less than your ${eaveHeight} ft eave height)
                 </p>
               </div>
@@ -1498,9 +2301,10 @@
                   ${state.doors.overhead.map((door, idx) => {
                     const price = getDoorPrice(door.height, door.width) || DOOR_SIZES.find(d => d.id === door.size)?.price || 0;
                     return `
-                    <div class="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                    <div class="door-list-item flex items-center justify-between bg-gray-50 rounded-lg p-3 border-2 border-transparent"
+                         data-door-id="overhead-${idx}">
                       <div class="flex items-center gap-3">
-                        <span class="text-2xl">${door.type === 'rollup' ? '🔄' : '📐'}</span>
+                        ${door.type === 'rollup' ? ICON_ROLLUP : ICON_SECTIONAL}
                         <div>
                           <p class="font-semibold">${door.height || door.size?.split('x')[0]}' H × ${door.width || door.size?.split('x')[1]}' W ${door.type === 'rollup' ? 'Roll-Up' : 'Sectional'}</p>
                           <p class="text-gray-500 text-sm">${door.placement === 'gabled' ? 'Gabled End' : 'Eave Side'}</p>
@@ -1568,15 +2372,51 @@
               </div>
             </div>
 
-            <!-- DOOR PLACEMENT VISUALIZATION (Placeholder) -->
-            <div class="border-b pb-6">
+            <!-- DOOR PLACEMENT VISUALIZATION -->
+            <div class="border-b pb-6" id="door-placement-preview-section">
               <h3 class="font-bold text-lg mb-3">Door Placement Preview</h3>
-              <div class="bg-gradient-to-b from-gray-100 to-gray-200 rounded-xl p-6 text-center border-2 border-dashed border-gray-300">
-                <div class="text-6xl mb-3">🏗️</div>
-                <p class="text-gray-600 font-medium">Visual Door Placement</p>
-                <p class="text-gray-400 text-sm">Coming Soon: Drag-and-drop door placement on building profile</p>
-                <p class="text-xs text-gray-400 mt-2">Final door positions confirmed during concrete pour coordination</p>
+
+              <!-- View Cycling Controls -->
+              <div class="flex flex-wrap items-center gap-2 mb-3">
+                <span class="text-sm font-medium text-gray-600">View:</span>
+                <div class="flex rounded-lg overflow-hidden border border-gray-300">
+                  <button onclick="setBuildingView('front')"
+                          class="px-3 py-1.5 text-sm font-medium ${state.buildingView === 'front' ? 'bg-[#003057] text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}">
+                    Front
+                  </button>
+                  <button onclick="setBuildingView('back')"
+                          class="px-3 py-1.5 text-sm font-medium border-l ${state.buildingView === 'back' ? 'bg-[#003057] text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}">
+                    Back
+                  </button>
+                  <button onclick="setBuildingView('left')"
+                          class="px-3 py-1.5 text-sm font-medium border-l ${state.buildingView === 'left' ? 'bg-[#003057] text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}">
+                    Left Side
+                  </button>
+                  <button onclick="setBuildingView('right')"
+                          class="px-3 py-1.5 text-sm font-medium border-l ${state.buildingView === 'right' ? 'bg-[#003057] text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}">
+                    Right Side
+                  </button>
+                </div>
               </div>
+
+              <!-- Breezeway Options -->
+              <div class="flex flex-wrap gap-4 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <span class="text-sm font-semibold text-[#003057]">Breezeway (Auto-Center):</span>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" ${state.breezeway.frontBack ? 'checked' : ''}
+                         onchange="toggleBreezeway('frontBack')"
+                         class="w-4 h-4 rounded border-gray-300 text-[#05c3de] focus:ring-[#05c3de]">
+                  <span class="text-sm text-gray-700">Front / Back</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" ${state.breezeway.sideSide ? 'checked' : ''}
+                         onchange="toggleBreezeway('sideSide')"
+                         class="w-4 h-4 rounded border-gray-300 text-[#05c3de] focus:ring-[#05c3de]">
+                  <span class="text-sm text-gray-700">Side / Side</span>
+                </label>
+              </div>
+
+              ${renderBuildingProfile()}
             </div>
 
             <!-- COLOR SELECTION -->
@@ -1759,6 +2599,82 @@
       render();
     }
 
+    function setBuildingView(view) {
+      state.buildingView = view;
+      render();
+    }
+
+    function toggleBreezeway(type) {
+      state.breezeway[type] = !state.breezeway[type];
+
+      // If breezeway is enabled, auto-center doors on appropriate walls
+      if (state.breezeway[type]) {
+        autoCenterDoorsForBreezeway(type);
+      }
+
+      render();
+    }
+
+    function autoCenterDoorsForBreezeway(type) {
+      // Get building dimensions
+      const size = BUILDING_SIZES.find(s => s.id === state.buildingSize);
+      if (!size) return;
+
+      const dims = size.label.replace(/'/g, '').split(' × ');
+      const buildingWidth = parseInt(dims[0]);
+      const buildingDepth = parseInt(dims[1]);
+
+      // SVG dimensions
+      const svgWidth = 400;
+      const margin = 40;
+      const scaledBuildingWidth = svgWidth - margin * 2;
+
+      // Determine which walls to center doors on
+      const wallsToCenter = type === 'frontBack' ? ['front', 'back'] : ['left', 'right'];
+
+      // For each wall, find doors assigned to it and center them
+      wallsToCenter.forEach(wall => {
+        const wallWidth = (wall === 'front' || wall === 'back') ? buildingWidth : buildingDepth;
+        const scale = scaledBuildingWidth / wallWidth;
+
+        // Get all gabled doors (these go on front/back) or eave doors (these go on sides)
+        const relevantDoors = (state.doors.overhead || []).filter(door => {
+          if (wall === 'front' || wall === 'back') {
+            return door.placement === 'gabled';
+          } else {
+            return door.placement === 'eave';
+          }
+        });
+
+        // Calculate total width of doors
+        let totalDoorWidth = 0;
+        relevantDoors.forEach(door => {
+          const doorWidthFt = door.width || parseInt(door.size?.split('x')[1]) || 10;
+          totalDoorWidth += doorWidthFt * scale * 0.8 + 10; // door width + gap
+        });
+        totalDoorWidth -= 10; // Remove last gap
+
+        // Center position
+        const centerX = margin + scaledBuildingWidth / 2 - totalDoorWidth / 2;
+
+        // Set positions for each door
+        let currentX = centerX;
+        relevantDoors.forEach((door, idx) => {
+          const doorId = `overhead-${state.doors.overhead.indexOf(door)}`;
+          const positionKey = `${doorId}-${wall}`;
+          state.doorPositions[positionKey] = currentX;
+
+          const doorWidthFt = door.width || parseInt(door.size?.split('x')[1]) || 10;
+          currentX += doorWidthFt * scale * 0.8 + 10;
+        });
+
+        // Also center the standard walkthrough door
+        const walkthroughKey = `standard-walkthrough-${wall}`;
+        const walkthroughWidth = 3 * scale * 0.8;
+        state.doorPositions[walkthroughKey] = margin + scaledBuildingWidth / 2 - walkthroughWidth / 2;
+      });
+    }
+
     // Step 4: Add-ons
     function renderAddons() {
       const type = BUILDING_TYPES[state.buildingType];
@@ -1770,7 +2686,7 @@
             <div class="flex items-center gap-3">
               ${LOGO_SVG_SMALL}
               <div>
-                <h1 class="text-lg font-bold text-[#003057]">Burnett Customs</h1>
+                <h1 class="text-lg font-bold text-[#003057]">Gryphon FrameWorks</h1>
                 <p class="text-[#003057] text-sm opacity-80">${type.name} - ${size.label} × ${eave.label}</p>
               </div>
             </div>
@@ -1908,7 +2824,7 @@
         items.push({ name: `${type.name} - ${size.label} × ${eave.label}`, price: size.startingPrice + eave.modifier });
 
         // Standard 301 Walk-through door (included in base)
-        items.push({ name: `  ✓ 3070 Walk-Through Door (Standard)`, price: 0 });
+        items.push({ name: `  3070 Walk-Through Door (Standard) - Included`, price: 0 });
 
         // Overhead doors (use new height × width if available)
         if (building.doors.overhead && building.doors.overhead.length > 0) {
@@ -1976,7 +2892,7 @@
             <div class="flex items-center gap-3">
               ${LOGO_SVG_SMALL}
               <div>
-                <h1 class="text-lg font-bold text-[#003057]">Burnett Customs</h1>
+                <h1 class="text-lg font-bold text-[#003057]">Gryphon FrameWorks</h1>
                 <p class="text-[#003057] text-sm opacity-80">Order Summary</p>
               </div>
             </div>
@@ -2047,11 +2963,11 @@
 
                 <div class="px-4 pb-4 flex gap-2">
                   <button onclick="editBuilding(${index})" class="flex-1 py-2 text-sm font-semibold text-[#003057] border-2 border-[#003057] rounded-lg hover:bg-gray-50">
-                    ✏️ Edit
+                    ${ICON_EDIT} Edit
                   </button>
                   ${state.buildings.length > 1 ? `
                     <button onclick="removeBuilding(${index})" class="py-2 px-4 text-sm font-semibold text-red-600 border-2 border-red-300 rounded-lg hover:bg-red-50">
-                      🗑️
+                      ${ICON_TRASH}
                     </button>
                   ` : ''}
                 </div>
@@ -2062,7 +2978,7 @@
           <!-- Add Another Building Button -->
           <button onclick="addAnotherBuilding()"
                   class="w-full py-4 mb-4 border-2 border-dashed border-[#05c3de] rounded-xl text-[#003057] font-semibold hover:bg-[#e0f7fa] transition-colors">
-            ➕ Add Another Building
+            ${ICON_PLUS} Add Another Building
           </button>
 
           <!-- Grand Total -->
@@ -2110,7 +3026,7 @@
               <div class="flex items-center gap-2">
                 ${LOGO_SVG_SMALL}
                 <div>
-                  <h1 class="text-lg font-bold text-[#003057]">Burnett Customs</h1>
+                  <h1 class="text-lg font-bold text-[#003057]">Gryphon FrameWorks</h1>
                   <p class="text-[#003057] text-xs opacity-80">${type.name} - ${size.label} × ${eave.label}</p>
                 </div>
               </div>
@@ -2157,7 +3073,7 @@
             ` : `
               <button onclick="sendContract()" ${state.sending ? 'disabled' : ''}
                       class="py-3 px-6 rounded-xl font-semibold btn-primary">
-                ${state.sending ? 'Sending...' : '📧 Send Contract'}
+                ${state.sending ? 'Sending...' : '${ICON_EMAIL} Send Contract'}
               </button>
             `}
           </div>
@@ -2187,7 +3103,7 @@
 
       return `
         <div class="bg-white rounded-xl p-6 shadow-lg">
-          <h3 class="text-xl font-bold mb-4 text-[#003057]">👤 Customer Information</h3>
+          <h3 class="text-xl font-bold mb-4 text-[#003057]">${ICON_USER} Customer Information</h3>
 
           <div class="space-y-4">
             <div>
@@ -2210,7 +3126,7 @@
 
             <!-- Mailing Address Section -->
             <div class="border-t pt-4 mt-4">
-              <h4 class="font-bold text-gray-800 mb-3">📍 Mailing Address</h4>
+              <h4 class="font-bold text-gray-800 mb-3">${ICON_LOCATION} Mailing Address</h4>
               <div class="space-y-3">
                 <div>
                   <label class="block font-semibold text-gray-700 mb-1">Address Line 1 *</label>
@@ -2246,7 +3162,7 @@
 
             <!-- Property Address Section -->
             <div class="border-t pt-4 mt-4">
-              <h4 class="font-bold text-gray-800 mb-3">🏗️ Property Address (Construction Site)</h4>
+              <h4 class="font-bold text-gray-800 mb-3">${ICON_CONSTRUCTION} Property Address (Construction Site)</h4>
               <div class="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
                 <input type="checkbox" id="sameAsMailing" ${state.customer.propertySameAsMailing ? 'checked' : ''}
                        onchange="toggleSameAsMailing()" class="w-5 h-5 cursor-pointer">
@@ -2318,13 +3234,13 @@
 
       return `
         <div class="bg-white rounded-xl p-6 shadow-lg">
-          <h3 class="text-xl font-bold mb-4 text-[#003057]">📖 Section 1: Project Overview</h3>
+          <h3 class="text-xl font-bold mb-4 text-[#003057]">${ICON_BOOK} Section 1: Project Overview</h3>
 
           <div class="contract-section">
             <h4 class="font-bold mb-2">DEFINITIONS</h4>
             <div class="legal-text space-y-2">
               <p><strong>"Owner"</strong> means the property owner signing this Contract.</p>
-              <p><strong>"Contractor"</strong> means Burnett Customs, LLC.</p>
+              <p><strong>"Contractor"</strong> means Gryphon FrameWorks, LLC.</p>
               <p><strong>"Work"</strong> means all labor, materials, equipment, and services required to complete the Project.</p>
               <p><strong>"Contract Sum"</strong> means the total price stated in this Contract for the Work.</p>
               <p><strong>"Substantial Completion"</strong> means the Work is sufficiently complete so the Owner can occupy or use the Project for its intended purpose.</p>
@@ -2360,7 +3276,7 @@
 
       return `
         <div class="bg-white rounded-xl p-6 shadow-lg">
-          <h3 class="text-xl font-bold mb-4 text-[#003057]">💰 Section 2: Payment Terms</h3>
+          <h3 class="text-xl font-bold mb-4 text-[#003057]">${ICON_MONEY} Section 2: Payment Terms</h3>
 
           <div class="contract-section">
             <h4 class="font-bold mb-2">DRAW SCHEDULE</h4>
@@ -2404,7 +3320,7 @@
 
       return `
         <div class="bg-white rounded-xl p-6 shadow-lg">
-          <h3 class="text-xl font-bold mb-4 text-[#003057]">📅 Section 3: Timeline & Changes</h3>
+          <h3 class="text-xl font-bold mb-4 text-[#003057]">${ICON_CALENDAR} Section 3: Timeline & Changes</h3>
 
           <div class="contract-section">
             <h4 class="font-bold mb-2">CHANGE ORDERS</h4>
@@ -2447,7 +3363,7 @@
 
       return `
         <div class="bg-white rounded-xl p-6 shadow-lg">
-          <h3 class="text-xl font-bold mb-4 text-[#003057]">🔧 Section 4: Responsibilities</h3>
+          <h3 class="text-xl font-bold mb-4 text-[#003057]">${ICON_WRENCH} Section 4: Responsibilities</h3>
 
           <div class="contract-section">
             <h4 class="font-bold mb-2">CONTRACTOR RESPONSIBILITIES</h4>
@@ -2496,7 +3412,7 @@
 
       return `
         <div class="bg-white rounded-xl p-6 shadow-lg">
-          <h3 class="text-xl font-bold mb-4 text-[#003057]">🛡️ Section 5: Warranties & Insurance</h3>
+          <h3 class="text-xl font-bold mb-4 text-[#003057]">${ICON_SHIELD} Section 5: Warranties & Insurance</h3>
 
           <div class="contract-section">
             <h4 class="font-bold mb-2">CONTRACTOR WARRANTY</h4>
@@ -2556,10 +3472,10 @@
 
       return `
         <div class="bg-white rounded-xl p-6 shadow-lg">
-          <h3 class="text-xl font-bold mb-4 text-[#003057]">⚖️ Section 6: Legal Provisions</h3>
+          <h3 class="text-xl font-bold mb-4 text-[#003057]">${ICON_SCALE} Section 6: Legal Provisions</h3>
 
           <div class="contract-section bg-red-50 border-red-200">
-            <h4 class="font-bold mb-2 text-red-800">⚠️ IMPORTANT LEGAL NOTICES - READ CAREFULLY</h4>
+            <h4 class="font-bold mb-2 text-red-800">${ICON_WARNING} IMPORTANT LEGAL NOTICES - READ CAREFULLY</h4>
           </div>
 
           <div class="contract-section">
@@ -2632,7 +3548,7 @@
 
       return `
         <div class="bg-white rounded-xl p-6 shadow-lg">
-          <h3 class="text-xl font-bold mb-4 text-[#003057]">✍️ Section 7: Final Acknowledgment & Signatures</h3>
+          <h3 class="text-xl font-bold mb-4 text-[#003057]">${ICON_PEN} Section 7: Final Acknowledgment & Signatures</h3>
 
           <div class="contract-section bg-[#e0f7fa]">
             <h4 class="font-bold mb-2">CONTRACT SUMMARY</h4>
@@ -2645,7 +3561,7 @@
               <div>
                 <p><strong>Contract Sum:</strong> ${formatCurrency(total)}</p>
                 <p><strong>Owner:</strong> ${state.customer.name || 'Not entered'}</p>
-                <p><strong>Contractor:</strong> Burnett Customs, LLC</p>
+                <p><strong>Contractor:</strong> Gryphon FrameWorks, LLC</p>
               </div>
             </div>
           </div>
@@ -2684,7 +3600,7 @@
                 <label class="block text-sm font-semibold mb-1">Print Name:</label>
                 <input type="text" id="contractorTypedNameInput" value="${state.contractorTypedName}" oninput="updateContractorName(this.value)"
                        class="border-2 rounded-lg p-2 w-full ${state.contractorTypedName ? 'border-[#05c3de]' : 'border-gray-300'}">
-                <p class="text-xs text-gray-500 mt-1">Company: Burnett Customs, LLC</p>
+                <p class="text-xs text-gray-500 mt-1">Company: Gryphon FrameWorks, LLC</p>
               </div>
               <label class="block text-sm font-semibold mb-1">Signature:</label>
               <canvas id="contractorSigPad" width="400" height="100" class="signature-pad w-full ${state.contractorSigned ? 'signed' : ''}"></canvas>
@@ -2707,18 +3623,18 @@
               `).join('')}
             </div>
             ${state.paymentMethod === 'card' ? `
-              <p class="mt-3 text-sm text-[#003057]">💳 Card payment will be processed separately. Contractor will collect card information securely.</p>
+              <p class="mt-3 text-sm text-[#003057]">${ICON_CREDIT_CARD} Card payment will be processed separately. Contractor will collect card information securely.</p>
             ` : ''}
           </div>
 
           ${state.sent ? `
             <div class="mt-6 bg-green-50 border-2 border-green-500 rounded-xl p-4 text-center">
-              <p class="text-green-800 font-bold text-lg">✅ Contract Sent Successfully!</p>
+              <p class="text-green-800 font-bold text-lg">${ICON_CHECK_CIRCLE} Contract Sent Successfully!</p>
               <p class="text-green-700">Copies have been sent to both parties.</p>
               <div class="flex flex-col sm:flex-row gap-3 justify-center mt-4">
-                <button onclick="downloadContract()" class="py-3 px-6 btn-secondary rounded-lg font-semibold">📥 Contract</button>
-                <button onclick="downloadBOM()" class="py-3 px-6 btn-secondary rounded-lg font-semibold">📋 Bill of Materials</button>
-                <button onclick="printContract()" class="py-3 px-6 btn-primary rounded-lg font-semibold">🖨️ Print</button>
+                <button onclick="downloadContract()" class="py-3 px-6 btn-secondary rounded-lg font-semibold">${ICON_DOWNLOAD} Contract</button>
+                <button onclick="downloadBOM()" class="py-3 px-6 btn-secondary rounded-lg font-semibold">${ICON_CLIPBOARD} Bill of Materials</button>
+                <button onclick="printContract()" class="py-3 px-6 btn-primary rounded-lg font-semibold">${ICON_PRINT} Print</button>
               </div>
             </div>
           ` : ''}
@@ -3134,10 +4050,10 @@ Special Requirements/Notes:
 ${state.boltUpSpecs.specialReqs || 'None'}
 
 ---
-Submitted via Burnett Metal Building Estimator
+Submitted via Gryphon FrameWorks Estimator
       `);
 
-      window.location.href = `mailto:bobby@burnettcustoms.net?subject=${subject}&body=${body}`;
+      window.location.href = `mailto:contracts@gryphonframeworks.com?subject=${subject}&body=${body}`;
 
       alert('Your quote request is ready to send! Your email client should open with the details.');
     }
@@ -3189,7 +4105,7 @@ BUILDING CONFIG ${index + 1} (Qty: ${qty}):
       const firstType = BUILDING_TYPES[firstBuilding.buildingType];
       const firstSize = BUILDING_SIZES.find(s => s.id === firstBuilding.buildingSize);
 
-      const subject = encodeURIComponent(`Burnett Customs Contract - ${state.customer.name} - ${totalBuildingQty} Building${totalBuildingQty !== 1 ? 's' : ''}`);
+      const subject = encodeURIComponent(`Gryphon FrameWorks Contract - ${state.customer.name} - ${totalBuildingQty} Building${totalBuildingQty !== 1 ? 's' : ''}`);
       const body = encodeURIComponent(`
 BURNETT CUSTOMS - EXECUTED CONTRACT
 ====================================
@@ -3217,12 +4133,12 @@ SIGNATURES:
 All 6 contract sections were acknowledged with checkbox and initials by the Owner.
 
 ---
-This contract was executed digitally via Burnett Metal Building Estimator.
-Burnett Customs, LLC
+This contract was executed digitally via Gryphon FrameWorks Estimator.
+Gryphon FrameWorks, LLC
       `);
 
       // Open emails
-      const contractorLink = `mailto:bobby@burnettcustoms.net?subject=${subject}&body=${body}`;
+      const contractorLink = `mailto:contracts@gryphonframeworks.com?subject=${subject}&body=${body}`;
       const customerLink = `mailto:${state.customer.email}?subject=${subject}&body=${body}`;
 
       window.open(contractorLink, '_blank');
@@ -3235,7 +4151,7 @@ Burnett Customs, LLC
       render();
       setTimeout(initSignaturePads, 100);
 
-      alert('Your email client should open with the contract details. Please send both emails to complete the process.\n\nEmails to:\n• ' + state.customer.email + '\n• bobby@burnettcustoms.net');
+      alert('Your email client should open with the contract details. Please send both emails to complete the process.\n\nEmails to:\n• ' + state.customer.email + '\n• contracts@gryphonframeworks.com');
     }
 
     // Print full contract
@@ -3265,7 +4181,7 @@ Burnett Customs, LLC
         <!DOCTYPE html>
         <html>
         <head>
-          <title>Burnett Customs Contract - ${state.customer.name}</title>
+          <title>Gryphon FrameWorks Contract - ${state.customer.name}</title>
           <style>
             * { box-sizing: border-box; margin: 0; padding: 0; }
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; line-height: 1.5; }
@@ -3463,14 +4379,14 @@ Burnett Customs, LLC
                 </div>
                 <div class="sig-details">
                   <p><strong>Printed Name:</strong> ${state.contractorTypedName || '_______________________'}</p>
-                  <p><strong>Company:</strong> Burnett Customs, LLC</p>
+                  <p><strong>Company:</strong> Gryphon FrameWorks, LLC</p>
                   <p><strong>Date:</strong> ${today}</p>
                 </div>
               </div>
 
               <div class="final-section">
-                <p style="font-size: 14px; font-weight: bold; color: #166534;">✅ Contract Executed</p>
-                <p style="font-size: 11px; color: #166534;">This contract was signed digitally via Burnett Metal Building Estimator on ${today}.</p>
+                <p style="font-size: 14px; font-weight: bold; color: #166534;">${ICON_CHECK_CIRCLE} Contract Executed</p>
+                <p style="font-size: 11px; color: #166534;">This contract was signed digitally via Gryphon FrameWorks Estimator on ${today}.</p>
               </div>
             </div>
           </div>
@@ -3529,7 +4445,7 @@ Burnett Customs, LLC
         <html>
         <head>
           <meta charset="UTF-8">
-          <title>Burnett Customs Contract - ${state.customer.name} - ${today.replace(/\\//g, '-')}</title>
+          <title>Gryphon FrameWorks Contract - ${state.customer.name} - ${today.replace(/\\//g, '-')}</title>
           <style>
             * { box-sizing: border-box; margin: 0; padding: 0; }
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; line-height: 1.5; }
@@ -3597,8 +4513,8 @@ Burnett Customs, LLC
               <h3 style="text-align:center;font-size:18px;color:#003057;margin-bottom:20px;">7. Final Acknowledgment & Signatures</h3>
               <p style="text-align:center;font-size:11px;margin-bottom:20px;">By signing below, both parties acknowledge they have read, understand, and agree to ALL terms.</p>
               <div class="sig-section"><h4>Owner Signature</h4><div class="sig-box">${ownerSigData ? '<img src="' + ownerSigData + '" class="sig-img">' : ''}</div><div class="sig-details"><p><strong>Printed Name:</strong> ${state.ownerTypedName}</p><p><strong>Date:</strong> ${today}</p></div></div>
-              <div class="sig-section"><h4>Contractor Signature</h4><div class="sig-box">${contractorSigData ? '<img src="' + contractorSigData + '" class="sig-img">' : ''}</div><div class="sig-details"><p><strong>Printed Name:</strong> ${state.contractorTypedName}</p><p><strong>Company:</strong> Burnett Customs, LLC</p><p><strong>Date:</strong> ${today}</p></div></div>
-              <div class="final-section"><p style="font-size:14px;font-weight:bold;color:#166534;">✅ Contract Executed</p><p style="font-size:11px;color:#166534;">Signed digitally on ${today}</p></div>
+              <div class="sig-section"><h4>Contractor Signature</h4><div class="sig-box">${contractorSigData ? '<img src="' + contractorSigData + '" class="sig-img">' : ''}</div><div class="sig-details"><p><strong>Printed Name:</strong> ${state.contractorTypedName}</p><p><strong>Company:</strong> Gryphon FrameWorks, LLC</p><p><strong>Date:</strong> ${today}</p></div></div>
+              <div class="final-section"><p style="font-size:14px;font-weight:bold;color:#166534;">${ICON_CHECK_CIRCLE} Contract Executed</p><p style="font-size:11px;color:#166534;">Signed digitally on ${today}</p></div>
             </div>
           </div>
         </body>
@@ -3610,7 +4526,7 @@ Burnett Customs, LLC
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'Burnett_Contract_' + state.customer.name.replace(/\\s+/g, '_') + '_' + today.replace(/\\//g, '-') + '.html';
+      a.download = 'Gryphon_Contract_' + state.customer.name.replace(/\\s+/g, '_') + '_' + today.replace(/\\//g, '-') + '.html';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -3781,7 +4697,7 @@ Burnett Customs, LLC
       XLSX.utils.book_append_sheet(wb, categorySheet, 'Aggregated Totals');
 
       // Generate and download file
-      const fileName = `Burnett_BOM_${state.customer.name.replace(/\s+/g, '_')}_${poNumber}.xlsx`;
+      const fileName = `Gryphon_BOM_${state.customer.name.replace(/\s+/g, '_')}_${poNumber}.xlsx`;
       XLSX.writeFile(wb, fileName);
     }
 
