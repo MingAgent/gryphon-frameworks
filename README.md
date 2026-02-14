@@ -1,6 +1,6 @@
-# Burnett Metal Building Closer
+# 13|7 FrameWorks Application
 
-A tablet-friendly sales application for Burnett Custom Homes metal building quotes and contract signing.
+A tablet-friendly sales application for 13|7 FrameWorks metal building quotes and contract signing.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
@@ -85,7 +85,7 @@ const EMAILJS_TEMPLATE_ID = 'your_template_id';
 
 ## Contract Terms Included
 
-This application includes the complete Burnett Custom Homes residential construction contract:
+This application includes the complete 13|7 FrameWorks residential construction contract:
 
 - **Change Order Policy**: $250 per request, $150/hr disruption fee
 - **Payment Schedule**: 50% deposit, 25% mid-construction, 25% final
@@ -131,7 +131,7 @@ const PACKAGES = {
 ```
 
 ### Contractor Info
-Search for "Burnett Custom Homes" and "bobby@burnettcustoms.net" to update company details.
+Search for "13|7 FrameWorks" and "bobby@burnettcustoms.net" to update company details.
 
 ### Contract Terms
 All legal language is in the `renderSectionContent()` function. Consult your attorney before making changes.
@@ -176,9 +176,9 @@ For questions or issues:
 
 ## Credits
 
-Built with assistance from Claude AI for Burnett Custom Homes, LLC.
+Built with assistance from Claude AI for 13|7 FrameWorks, LLC.
 
 ---
 
-**Burnett Custom Homes, LLC**
+**13|7 FrameWorks, LLC**
 5416 SW Moody St., Victoria, TX 77905
