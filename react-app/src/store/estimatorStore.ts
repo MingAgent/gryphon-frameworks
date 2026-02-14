@@ -41,6 +41,7 @@ const initialCustomer: CustomerInfo = {
 };
 
 const initialBuilding: BuildingConfig = {
+  buildingType: 'pole-barn',
   buildingSizeId: '30x40',
   eaveHeightId: '10',
   width: 30,
@@ -134,7 +135,7 @@ export const useEstimatorStore = create<EstimatorStore>()(
       // Navigation Actions
       nextStep: () => {
         const { currentStep } = get();
-        if (currentStep < 7) {
+        if (currentStep < 8) {
           set({ currentStep: currentStep + 1 });
           get().calculatePricing();
         }
@@ -148,7 +149,7 @@ export const useEstimatorStore = create<EstimatorStore>()(
       },
 
       goToStep: (step: number) => {
-        if (step >= 1 && step <= 7) {
+        if (step >= 1 && step <= 8) {
           set({ currentStep: step });
           get().calculatePricing();
         }

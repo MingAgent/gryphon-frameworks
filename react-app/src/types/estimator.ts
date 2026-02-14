@@ -25,6 +25,7 @@ export interface CustomerInfo {
 // Building Configuration Types
 export type LegType = 'standard' | 'certified';
 export type BuildingView = 'front' | 'back' | 'left' | 'right';
+export type BuildingType = 'pole-barn' | 'carport' | 'bolt-up';
 
 export interface Breezeway {
   frontBack: boolean;
@@ -32,6 +33,8 @@ export interface Breezeway {
 }
 
 export interface BuildingConfig {
+  // Building type selection
+  buildingType: BuildingType;
   // Cookie-cutter selection IDs
   buildingSizeId: string;
   eaveHeightId: string;

@@ -7,21 +7,23 @@ import { ContractWizard } from './components/contract';
 
 // Import step components
 import Step1CustomerInfo from './components/estimator/steps/Step1CustomerInfo';
-import Step2BuildingSize from './components/estimator/steps/Step2BuildingSize';
-import Step3EaveHeight from './components/estimator/steps/Step3EaveHeight';
-import Step4Doors from './components/estimator/steps/Step4Doors';
-import Step5Colors from './components/estimator/steps/Step5Colors';
-import Step6AddOns from './components/estimator/steps/Step6AddOns';
-import Step7Summary from './components/estimator/steps/Step7Summary';
+import Step2BuildingType from './components/estimator/steps/Step2BuildingType';
+import Step3BuildingSize from './components/estimator/steps/Step2BuildingSize';
+import Step4EaveHeight from './components/estimator/steps/Step3EaveHeight';
+import Step5Doors from './components/estimator/steps/Step4Doors';
+import Step6Colors from './components/estimator/steps/Step5Colors';
+import Step7AddOns from './components/estimator/steps/Step6AddOns';
+import Step8Summary from './components/estimator/steps/Step7Summary';
 
 const steps = [
   { id: 1, title: 'Customer Info', component: <Step1CustomerInfo /> },
-  { id: 2, title: 'Building Size', component: <Step2BuildingSize /> },
-  { id: 3, title: 'Eave Height', component: <Step3EaveHeight /> },
-  { id: 4, title: 'Doors', component: <Step4Doors /> },
-  { id: 5, title: 'Colors', component: <Step5Colors /> },
-  { id: 6, title: 'Add-Ons', component: <Step6AddOns /> },
-  { id: 7, title: 'Summary', component: <Step7Summary /> }
+  { id: 2, title: 'Building Type', component: <Step2BuildingType /> },
+  { id: 3, title: 'Building Size', component: <Step3BuildingSize /> },
+  { id: 4, title: 'Eave Height', component: <Step4EaveHeight /> },
+  { id: 5, title: 'Doors', component: <Step5Doors /> },
+  { id: 6, title: 'Colors', component: <Step6Colors /> },
+  { id: 7, title: 'Add-Ons', component: <Step7AddOns /> },
+  { id: 8, title: 'Summary', component: <Step8Summary /> }
 ];
 
 function App() {
