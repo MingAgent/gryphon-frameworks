@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion';
+import { Palette } from 'lucide-react';
 import { useEstimatorStore } from '../../../store/estimatorStore';
 import { containerVariants, itemVariants } from '../../../animations/variants';
 import { ROOF_COLORS, WALL_COLORS, TRIM_COLORS } from '../../../constants/colors';
+import { BuildingProfile } from '../building-profile/BuildingProfile';
 import type { ColorOption } from '../../../constants/colors';
 
 interface ColorSwatchProps {
@@ -16,7 +18,7 @@ function ColorSwatch({ color, isSelected, onClick }: ColorSwatchProps) {
       onClick={onClick}
       className={`
         relative w-10 h-10 rounded-lg shadow-sm transition-all duration-200
-        ${isSelected ? 'ring-2 ring-cyan-400 ring-offset-2 scale-110' : 'hover:scale-105'}
+        ${isSelected ? 'ring-2 ring-[#14B8A6] ring-offset-2 ring-offset-[#1e2a45] scale-110' : 'hover:scale-105'}
       `}
       style={{ backgroundColor: color.hex }}
       title={color.name}
@@ -32,7 +34,7 @@ function ColorSwatch({ color, isSelected, onClick }: ColorSwatchProps) {
           }`}>
             <svg className={`w-2.5 h-2.5 ${
               color.hex === '#FFFFFF' || color.hex === '#FEF3C7' || color.hex === '#D7CCC8' || color.hex === '#E8DCC8'
-                ? 'text-white' : 'text-emerald-600'
+                ? 'text-white' : 'text-[#14B8A6]'
             }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
@@ -54,10 +56,10 @@ function ColorSection({ title, colors, selectedColor, onSelect }: ColorSectionPr
   const selectedColorName = colors.find((c) => c.hex === selectedColor)?.name || 'Custom';
 
   return (
-    <div className="bg-white rounded-lg p-4 border border-gray-200">
+    <div className="bg-[#1e2a45] rounded-xl p-4 border border-white/10">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="font-semibold text-gray-800">{title}</h4>
-        <span className="text-sm text-gray-500">{selectedColorName}</span>
+        <h4 className="font-semibold text-white">{title}</h4>
+        <span className="text-sm text-[#14B8A6]">{selectedColorName}</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {colors.map((color) => (
@@ -74,7 +76,9 @@ function ColorSection({ title, colors, selectedColor, onSelect }: ColorSectionPr
 }
 
 export function Step5Colors() {
-  const { colors, setColors } = useEstimatorStore();
+  const { colors, setColors, building, setBuildingConfig } = useEstimatorStore();
+
+  type WallView = 'front' | 'back' | 'left' | 'right';
 
   return (
     <motion.div
@@ -83,7 +87,7 @@ export function Step5Colors() {
       animate="animate"
       className="space-y-6"
     >
-      <motion.p variants={itemVariants} className="text-gray-600">
+      <motion.p variants={itemVariants} className="text-[#A3A3A3]">
         Choose colors for your building panels and trim.
       </motion.p>
 
@@ -110,9 +114,50 @@ export function Step5Colors() {
         />
       </motion.div>
 
+      {/* Building Preview with Colors */}
+      <motion.div variants={itemVariants} className="bg-[#1e2a45] rounded-xl p-6 border border-white/10">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Palette className="w-5 h-5 text-[#14B8A6]" />
+            <h3 className="text-lg font-semibold text-white">Building Preview</h3>
+          </div>
+          <p className="text-sm text-[#A3A3A3]">See your color selections</p>
+        </div>
+
+        {/* Wall View Tabs */}
+        <div className="flex gap-2 mb-4">
+          {(['front', 'back', 'left', 'right'] as WallView[]).map((wall) => {
+            const isActive = building.buildingView === wall;
+            return (
+              <button
+                key={wall}
+                onClick={() => setBuildingConfig({ buildingView: wall })}
+                className={`
+                  flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all
+                  ${isActive
+                    ? 'bg-[#14B8A6] text-white shadow-lg'
+                    : 'bg-[#243352] text-[#A3A3A3] hover:bg-[#2d3f63] border border-white/10'
+                  }
+                `}
+              >
+                <span className="capitalize">{wall}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Building Profile Visualization */}
+        <div className="rounded-lg overflow-hidden border border-white/10">
+          <BuildingProfile
+            showDoors={true}
+            showClearanceZones={false}
+          />
+        </div>
+      </motion.div>
+
       {/* Color Summary */}
-      <motion.div variants={itemVariants} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-        <h4 className="font-semibold text-gray-700 mb-3">Your Color Selections</h4>
+      <motion.div variants={itemVariants} className="bg-[#1e2a45] rounded-xl p-4 border border-white/10">
+        <h4 className="font-semibold text-white mb-3">Your Color Selections</h4>
         <div className="flex gap-6">
           {[
             { label: 'Walls', color: colors.walls, colorList: WALL_COLORS },
@@ -121,12 +166,12 @@ export function Step5Colors() {
           ].map(({ label, color, colorList }) => (
             <div key={label} className="flex items-center gap-2">
               <div
-                className="w-8 h-8 rounded border border-gray-300"
+                className="w-8 h-8 rounded border border-white/20"
                 style={{ backgroundColor: color }}
               />
               <div>
-                <p className="text-xs text-gray-500">{label}</p>
-                <p className="text-sm font-medium text-gray-800">
+                <p className="text-xs text-[#A3A3A3]">{label}</p>
+                <p className="text-sm font-medium text-white">
                   {colorList.find((c) => c.hex === color)?.name || 'Custom'}
                 </p>
               </div>
