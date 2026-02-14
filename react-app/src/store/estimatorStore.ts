@@ -8,26 +8,43 @@ import type {
   ColorConfig,
   ConcreteConfig,
   ContractConfig,
+  ContractSectionState,
   DoorConfig,
-  WindowConfig
+  WindowConfig,
+  PaymentMethod
 } from '../types/estimator';
 import { calculateTotalPrice } from '../utils/calculations/pricing';
 import { DEFAULT_COLORS } from '../constants/colors';
+
+// Initial address structure
+const emptyAddress = {
+  street: '',
+  city: '',
+  state: '',
+  zip: ''
+};
 
 // Initial state values
 const initialCustomer: CustomerInfo = {
   name: '',
   email: '',
   phone: '',
+  // Legacy fields
   address: '',
   city: '',
   state: '',
-  zip: ''
+  zip: '',
+  // New address structure
+  billingAddress: { ...emptyAddress },
+  constructionAddress: { ...emptyAddress },
+  sameAsMailingAddress: false
 };
 
 const initialBuilding: BuildingConfig = {
-  width: 24,
-  length: 30,
+  buildingSizeId: '30x40',
+  eaveHeightId: '10',
+  width: 30,
+  length: 40,
   height: 10,
   legType: 'standard',
   buildingView: 'front',
@@ -58,15 +75,37 @@ const initialConcrete: ConcreteConfig = {
   thickness: 4
 };
 
+// Initial section state
+const initialSectionState: ContractSectionState = {
+  checked: false,
+  initialed: false,
+  initialsData: null,
+  timestamp: null
+};
+
 const initialContract: ContractConfig = {
-  signatures: {
-    contractor: null,
-    customer: null,
-    contractorDate: null,
-    customerDate: null
+  currentSection: 0,
+  sections: {
+    projectOverview: { ...initialSectionState },
+    paymentTerms: { ...initialSectionState },
+    timeline: { ...initialSectionState },
+    responsibilities: { ...initialSectionState },
+    warranties: { ...initialSectionState },
+    legalProvisions: { ...initialSectionState }
   },
+  signatures: {
+    ownerSignature: null,
+    ownerTypedName: '',
+    ownerSignedAt: null,
+    contractorSignature: null,
+    contractorTypedName: '',
+    contractorSignedAt: null
+  },
+  paymentMethod: null,
   agreedToTerms: false,
-  depositPaid: false
+  depositPaid: false,
+  contractSent: false,
+  contractSentAt: null
 };
 
 export const useEstimatorStore = create<EstimatorStore>()(
@@ -127,6 +166,139 @@ export const useEstimatorStore = create<EstimatorStore>()(
         if (currentContractSection > 1) {
           set({ currentContractSection: currentContractSection - 1 });
         }
+      },
+
+      goToContractSection: (section: number) => {
+        if (section >= 0 && section <= 7) {
+          set((state) => ({
+            contract: { ...state.contract, currentSection: section }
+          }));
+        }
+      },
+
+      // Contract Section Actions
+      acknowledgeSection: (sectionId, checked) => {
+        set((state) => ({
+          contract: {
+            ...state.contract,
+            sections: {
+              ...state.contract.sections,
+              [sectionId]: {
+                ...state.contract.sections[sectionId],
+                checked,
+                timestamp: checked ? new Date().toISOString() : null
+              }
+            }
+          }
+        }));
+      },
+
+      setInitials: (sectionId, initialsData) => {
+        set((state) => ({
+          contract: {
+            ...state.contract,
+            sections: {
+              ...state.contract.sections,
+              [sectionId]: {
+                ...state.contract.sections[sectionId],
+                initialed: true,
+                initialsData,
+                timestamp: new Date().toISOString()
+              }
+            }
+          }
+        }));
+      },
+
+      clearInitials: (sectionId) => {
+        set((state) => ({
+          contract: {
+            ...state.contract,
+            sections: {
+              ...state.contract.sections,
+              [sectionId]: {
+                ...state.contract.sections[sectionId],
+                initialed: false,
+                initialsData: null
+              }
+            }
+          }
+        }));
+      },
+
+      setOwnerSignature: (signatureData, typedName) => {
+        set((state) => ({
+          contract: {
+            ...state.contract,
+            signatures: {
+              ...state.contract.signatures,
+              ownerSignature: signatureData,
+              ownerTypedName: typedName,
+              ownerSignedAt: new Date().toISOString()
+            }
+          }
+        }));
+      },
+
+      clearOwnerSignature: () => {
+        set((state) => ({
+          contract: {
+            ...state.contract,
+            signatures: {
+              ...state.contract.signatures,
+              ownerSignature: null,
+              ownerTypedName: '',
+              ownerSignedAt: null
+            }
+          }
+        }));
+      },
+
+      setContractorSignature: (signatureData, typedName) => {
+        set((state) => ({
+          contract: {
+            ...state.contract,
+            signatures: {
+              ...state.contract.signatures,
+              contractorSignature: signatureData,
+              contractorTypedName: typedName,
+              contractorSignedAt: new Date().toISOString()
+            }
+          }
+        }));
+      },
+
+      clearContractorSignature: () => {
+        set((state) => ({
+          contract: {
+            ...state.contract,
+            signatures: {
+              ...state.contract.signatures,
+              contractorSignature: null,
+              contractorTypedName: '',
+              contractorSignedAt: null
+            }
+          }
+        }));
+      },
+
+      setPaymentMethod: (method: PaymentMethod) => {
+        set((state) => ({
+          contract: {
+            ...state.contract,
+            paymentMethod: method
+          }
+        }));
+      },
+
+      markContractSent: () => {
+        set((state) => ({
+          contract: {
+            ...state.contract,
+            contractSent: true,
+            contractSentAt: new Date().toISOString()
+          }
+        }));
       },
 
       // Setters
@@ -254,13 +426,13 @@ export const useEstimatorStore = create<EstimatorStore>()(
       resetEstimate: () => {
         set({
           currentStep: 1,
-          currentContractSection: 1,
-          customer: initialCustomer,
-          building: initialBuilding,
-          accessories: initialAccessories,
+          currentContractSection: 0,
+          customer: { ...initialCustomer },
+          building: { ...initialBuilding },
+          accessories: { ...initialAccessories },
           doorPositions: {},
-          colors: initialColors,
-          concrete: initialConcrete,
+          colors: { ...initialColors },
+          concrete: { ...initialConcrete },
           pricing: {
             basePrice: 0,
             accessoriesTotal: 0,
@@ -270,7 +442,30 @@ export const useEstimatorStore = create<EstimatorStore>()(
             grandTotal: 0,
             depositAmount: 0
           },
-          contract: initialContract
+          contract: {
+            currentSection: 0,
+            sections: {
+              projectOverview: { ...initialSectionState },
+              paymentTerms: { ...initialSectionState },
+              timeline: { ...initialSectionState },
+              responsibilities: { ...initialSectionState },
+              warranties: { ...initialSectionState },
+              legalProvisions: { ...initialSectionState }
+            },
+            signatures: {
+              ownerSignature: null,
+              ownerTypedName: '',
+              ownerSignedAt: null,
+              contractorSignature: null,
+              contractorTypedName: '',
+              contractorSignedAt: null
+            },
+            paymentMethod: null,
+            agreedToTerms: false,
+            depositPaid: false,
+            contractSent: false,
+            contractSentAt: null
+          }
         });
       },
 
@@ -287,7 +482,7 @@ export const useEstimatorStore = create<EstimatorStore>()(
       }
     }),
     {
-      name: 'gryphon-estimator-storage',
+      name: '137-estimator-storage',
       partialize: (state) => ({
         customer: state.customer,
         building: state.building,

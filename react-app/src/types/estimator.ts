@@ -1,12 +1,25 @@
+// Address Type
+export interface Address {
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+}
+
 // Customer Information Types
 export interface CustomerInfo {
   name: string;
   email: string;
   phone: string;
+  // Legacy fields (keeping for backward compatibility)
   address: string;
   city: string;
   state: string;
   zip: string;
+  // New address structure
+  billingAddress: Address;
+  constructionAddress: Address;
+  sameAsMailingAddress: boolean;
 }
 
 // Building Configuration Types
@@ -19,6 +32,10 @@ export interface Breezeway {
 }
 
 export interface BuildingConfig {
+  // Cookie-cutter selection IDs
+  buildingSizeId: string;
+  eaveHeightId: string;
+  // Computed dimensions (from selected size/height)
   width: number;
   length: number;
   height: number;
@@ -85,18 +102,63 @@ export interface PricingBreakdown {
   depositAmount: number;
 }
 
-// Contract Types
-export interface SignatureData {
-  contractor: string | null;
-  customer: string | null;
-  contractorDate: string | null;
-  customerDate: string | null;
+// Contract Section Types
+export type ContractSectionId =
+  | 'customerInfo'
+  | 'projectOverview'
+  | 'paymentTerms'
+  | 'timeline'
+  | 'responsibilities'
+  | 'warranties'
+  | 'legalProvisions'
+  | 'signatures';
+
+export interface ContractSectionState {
+  checked: boolean;      // Checkbox acknowledgment
+  initialed: boolean;    // Has initials been provided
+  initialsData: string | null;  // Base64 PNG of initials
+  timestamp: string | null;     // When acknowledged
 }
 
+// Signature Data (for final signatures)
+export interface SignatureData {
+  ownerSignature: string | null;      // Base64 PNG
+  ownerTypedName: string;
+  ownerSignedAt: string | null;
+  contractorSignature: string | null; // Base64 PNG
+  contractorTypedName: string;
+  contractorSignedAt: string | null;
+}
+
+// Payment method for first draw
+export type PaymentMethod = 'cash' | 'check' | 'card' | 'financing' | 'ach' | null;
+
+// Full Contract Configuration
 export interface ContractConfig {
+  // Current section being viewed (0-7)
+  currentSection: number;
+
+  // Section acknowledgments (sections 1-6 require checkbox + initials)
+  sections: {
+    projectOverview: ContractSectionState;
+    paymentTerms: ContractSectionState;
+    timeline: ContractSectionState;
+    responsibilities: ContractSectionState;
+    warranties: ContractSectionState;
+    legalProvisions: ContractSectionState;
+  };
+
+  // Final signatures
   signatures: SignatureData;
+
+  // Payment
+  paymentMethod: PaymentMethod;
+
+  // Status flags
   agreedToTerms: boolean;
   depositPaid: boolean;
+  contractSent: boolean;
+  contractSentAt: string | null;
 }
 
 // Door Position Map (for drag-drop)
@@ -127,6 +189,7 @@ export interface EstimatorActions {
   goToStep: (step: number) => void;
   nextContractSection: () => void;
   prevContractSection: () => void;
+  goToContractSection: (section: number) => void;
 
   // Setters
   setCustomerInfo: (info: Partial<CustomerInfo>) => void;
@@ -136,6 +199,17 @@ export interface EstimatorActions {
   setColors: (colors: Partial<ColorConfig>) => void;
   setConcreteConfig: (config: Partial<ConcreteConfig>) => void;
   setContractData: (data: Partial<ContractConfig>) => void;
+
+  // Contract Section Actions
+  acknowledgeSection: (sectionId: keyof ContractConfig['sections'], checked: boolean) => void;
+  setInitials: (sectionId: keyof ContractConfig['sections'], initialsData: string) => void;
+  clearInitials: (sectionId: keyof ContractConfig['sections']) => void;
+  setOwnerSignature: (signatureData: string, typedName: string) => void;
+  clearOwnerSignature: () => void;
+  setContractorSignature: (signatureData: string, typedName: string) => void;
+  clearContractorSignature: () => void;
+  setPaymentMethod: (method: PaymentMethod) => void;
+  markContractSent: () => void;
 
   // Door/Window Management
   addDoor: (door: DoorConfig) => void;

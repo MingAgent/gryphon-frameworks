@@ -13,16 +13,40 @@ export interface ButtonProps extends HTMLMotionProps<'button'> {
 }
 
 const variantStyles = {
-  primary: 'bg-orange-600 hover:bg-orange-700 text-white shadow-md hover:shadow-lg',
-  secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-800',
-  outline: 'border-2 border-orange-600 text-orange-600 hover:bg-orange-50',
-  ghost: 'text-gray-600 hover:bg-gray-100'
+  primary: `
+    bg-gradient-to-r from-[#FF6A00] to-[#FF8533]
+    text-white font-semibold
+    shadow-lg shadow-[#FF6A00]/20
+    hover:shadow-xl hover:shadow-[#FF6A00]/30
+    hover:-translate-y-0.5
+    active:translate-y-0
+  `,
+  secondary: `
+    bg-[#1A1A1A]
+    text-white
+    border border-white/12
+    hover:bg-[#222222]
+    hover:border-white/20
+  `,
+  outline: `
+    bg-transparent
+    border-2 border-[#FF6A00]
+    text-[#FF6A00]
+    hover:bg-[#FF6A00]/10
+    hover:shadow-lg hover:shadow-[#FF6A00]/10
+  `,
+  ghost: `
+    bg-transparent
+    text-[#A3A3A3]
+    hover:text-white
+    hover:bg-white/5
+  `
 };
 
 const sizeStyles = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-5 py-2.5 text-base',
-  lg: 'px-7 py-3.5 text-lg'
+  sm: 'px-4 py-2.5 text-sm rounded-lg min-h-[44px]',  // 44px touch target
+  md: 'px-5 py-3 text-base rounded-lg min-h-[44px]',  // 44px touch target
+  lg: 'px-7 py-4 text-lg rounded-xl min-h-[52px]'    // Larger for emphasis
 };
 
 export function Button({
@@ -46,10 +70,10 @@ export function Button({
       whileTap={!isDisabled ? 'tap' : undefined}
       className={`
         inline-flex items-center justify-center gap-2
-        font-semibold rounded-lg
-        transition-colors duration-200
-        focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2
-        disabled:opacity-50 disabled:cursor-not-allowed
+        font-semibold
+        transition-all duration-200
+        focus:outline-none focus:ring-2 focus:ring-[#14B8A6]/50 focus:ring-offset-2 focus:ring-offset-[#0A0A0A]
+        disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:transform-none
         ${variantStyles[variant]}
         ${sizeStyles[size]}
         ${className}

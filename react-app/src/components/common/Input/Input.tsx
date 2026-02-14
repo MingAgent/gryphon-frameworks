@@ -20,7 +20,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium text-gray-700 mb-2"
+            className="block text-xs font-semibold text-[#A3A3A3] uppercase tracking-wider mb-2"
           >
             {label}
           </label>
@@ -30,10 +30,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           animate={{
             scale: isFocused ? 1.01 : 1
           }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
         >
           {leftIcon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#666666]">
               {leftIcon}
             </div>
           )}
@@ -41,16 +41,20 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={`
-              w-full px-4 py-3
-              ${leftIcon ? 'pl-10' : ''}
-              ${rightIcon ? 'pr-10' : ''}
-              border rounded-lg
+              w-full px-4 py-3.5
+              ${leftIcon ? 'pl-11' : ''}
+              ${rightIcon ? 'pr-11' : ''}
+              bg-[#111111]
+              text-white
+              placeholder-[#666666]
+              border rounded-xl
               transition-all duration-200
               outline-none
               ${error
-                ? 'border-red-500 focus:ring-2 focus:ring-red-500 focus:border-transparent'
-                : 'border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-transparent'
+                ? 'border-red-500/50 focus:ring-2 focus:ring-red-500/30 focus:border-red-500'
+                : 'border-white/8 hover:border-white/15 focus:ring-2 focus:ring-[#14B8A6]/30 focus:border-[#14B8A6]'
               }
+              ${isFocused ? 'bg-[#1A1A1A]' : ''}
               ${className}
             `}
             onFocus={() => setIsFocused(true)}
@@ -58,7 +62,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {rightIcon && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[#666666]">
               {rightIcon}
             </div>
           )}
@@ -67,13 +71,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <motion.p
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-1 text-sm text-red-600"
+            className="mt-2 text-sm text-red-400 flex items-center gap-1"
           >
+            <span className="w-1 h-1 rounded-full bg-red-400" />
             {error}
           </motion.p>
         )}
         {helperText && !error && (
-          <p className="mt-1 text-sm text-gray-500">{helperText}</p>
+          <p className="mt-2 text-sm text-[#666666]">{helperText}</p>
         )}
       </div>
     );

@@ -25,7 +25,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         {label && (
           <label
             htmlFor={selectId}
-            className="block text-sm font-medium text-gray-700 mb-2"
+            className="block text-xs font-semibold text-[#A3A3A3] uppercase tracking-wider mb-2"
           >
             {label}
           </label>
@@ -35,23 +35,25 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           animate={{
             scale: isFocused ? 1.01 : 1
           }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
         >
           <select
             ref={ref}
             id={selectId}
             className={`
-              w-full px-4 py-3 pr-10
+              w-full px-4 py-3.5 pr-11
               appearance-none
-              border rounded-lg
-              bg-white
+              bg-[#111111]
+              text-white
+              border rounded-xl
               transition-all duration-200
               outline-none
               cursor-pointer
               ${error
-                ? 'border-red-500 focus:ring-2 focus:ring-red-500 focus:border-transparent'
-                : 'border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-transparent'
+                ? 'border-red-500/50 focus:ring-2 focus:ring-red-500/30 focus:border-red-500'
+                : 'border-white/8 hover:border-white/15 focus:ring-2 focus:ring-[#14B8A6]/30 focus:border-[#14B8A6]'
               }
+              ${isFocused ? 'bg-[#1A1A1A]' : ''}
               ${className}
             `}
             onFocus={() => setIsFocused(true)}
@@ -59,24 +61,34 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             {...props}
           >
             {placeholder && (
-              <option value="" disabled>
+              <option value="" disabled className="text-[#666666] bg-[#111111]">
                 {placeholder}
               </option>
             )}
             {options.map((option) => (
-              <option key={option.value} value={option.value}>
+              <option
+                key={option.value}
+                value={option.value}
+                className="bg-[#111111] text-white py-2"
+              >
                 {option.label}
               </option>
             ))}
           </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+          <ChevronDown className={`
+            absolute right-4 top-1/2 -translate-y-1/2
+            w-5 h-5 pointer-events-none
+            transition-colors duration-200
+            ${isFocused ? 'text-[#14B8A6]' : 'text-[#666666]'}
+          `} />
         </motion.div>
         {error && (
           <motion.p
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-1 text-sm text-red-600"
+            className="mt-2 text-sm text-red-400 flex items-center gap-1"
           >
+            <span className="w-1 h-1 rounded-full bg-red-400" />
             {error}
           </motion.p>
         )}

@@ -8,12 +8,14 @@ import {
   Layers,
   Calculator,
   Check,
-  Edit
+  Edit,
+  AlertTriangle
 } from 'lucide-react';
 import { useEstimatorStore } from '../../../store/estimatorStore';
 import { containerVariants, itemVariants, priceVariants } from '../../../animations/variants';
 import Card from '../../common/Card/Card';
 import Button from '../../common/Button/Button';
+import { BOMExportButton } from '../export/BOMExportButton';
 import { formatCurrency } from '../../../utils/calculations/pricing';
 import { ROOF_COLORS, WALL_COLORS, TRIM_COLORS } from '../../../constants/colors';
 
@@ -322,15 +324,31 @@ export function Step6Review() {
                   Email Estimate
                 </Button>
               </div>
+
+              {/* Internal BOM Export - Staff Only */}
+              <div className="mt-4 pt-4 border-t border-orange-500">
+                <div className="flex items-center gap-2 text-orange-200 text-xs mb-2">
+                  <AlertTriangle className="w-3 h-3" />
+                  <span>Staff Only - Internal Document</span>
+                </div>
+                <BOMExportButton className="w-full" />
+              </div>
             </Card>
 
             <motion.div
               variants={itemVariants}
               className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200"
             >
-              <p className="text-sm text-green-800">
-                <strong>Ready to proceed?</strong> Click "Review Estimate" to continue to the contract section.
+              <p className="text-sm text-green-800 mb-3">
+                <strong>Ready to proceed?</strong> Review and sign the contract to finalize your order.
               </p>
+              <Button
+                variant="primary"
+                className="w-full bg-green-600 hover:bg-green-700"
+                onClick={() => window.dispatchEvent(new Event('showContract'))}
+              >
+                Proceed to Contract
+              </Button>
             </motion.div>
           </motion.div>
         </div>

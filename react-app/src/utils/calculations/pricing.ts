@@ -5,7 +5,8 @@ import type {
   PricingBreakdown
 } from '../../types/estimator';
 import {
-  BASE_PRICE_PER_SQFT,
+  BUILDING_SIZES,
+  EAVE_HEIGHTS,
   LEG_TYPE_MULTIPLIERS,
   DOOR_PRICES,
   WINDOW_PRICES,
@@ -19,14 +20,29 @@ import {
 } from '../../constants/pricing';
 
 /**
- * Calculate the base price of the building structure
+ * Calculate the base price of the building structure using cookie-cutter pricing
  */
 export function calculateBasePrice(building: BuildingConfig): number {
-  const sqft = building.width * building.length;
-  const heightMultiplier = 1 + (building.height - 8) * 0.05; // 5% per foot above 8ft
-  const legMultiplier = LEG_TYPE_MULTIPLIERS[building.legType];
+  // Find the selected building size
+  const selectedSize = BUILDING_SIZES.find(s => s.id === building.buildingSizeId);
+  const selectedHeight = EAVE_HEIGHTS.find(h => h.id === building.eaveHeightId);
 
-  return sqft * BASE_PRICE_PER_SQFT * heightMultiplier * legMultiplier;
+  if (!selectedSize) {
+    // Fallback to first size if not found
+    return BUILDING_SIZES[0].startingPrice;
+  }
+
+  // Base price from cookie-cutter size + eave height modifier
+  let basePrice = selectedSize.startingPrice + (selectedHeight?.modifier || 0);
+
+  // Apply leg type multiplier for certified frames
+  const legMultiplier = LEG_TYPE_MULTIPLIERS[building.legType];
+  if (legMultiplier > 1) {
+    // Add 15% for certified frames
+    basePrice = basePrice * legMultiplier;
+  }
+
+  return basePrice;
 }
 
 /**
