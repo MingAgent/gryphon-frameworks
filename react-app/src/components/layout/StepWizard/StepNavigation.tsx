@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, FileText } from 'lucide-react';
 import Button from '../../common/Button/Button';
 
 interface StepNavigationProps {
@@ -25,6 +25,15 @@ export function StepNavigation({
 }: StepNavigationProps) {
   const isFirstStep = currentStep === 1;
   const isLastStep = currentStep === totalSteps;
+
+  const handleNextClick = () => {
+    if (isLastStep) {
+      // On the last step, proceed directly to the contract
+      window.dispatchEvent(new Event('showContract'));
+    } else {
+      onNext();
+    }
+  };
 
   return (
     <motion.div
@@ -54,14 +63,14 @@ export function StepNavigation({
         Step {currentStep} of {totalSteps}
       </motion.div>
 
-      {/* Next Button */}
+      {/* Next / Proceed to Contract Button */}
       <Button
         variant="primary"
-        onClick={onNext}
+        onClick={handleNextClick}
         disabled={isNextDisabled}
-        rightIcon={<ArrowRight className="w-5 h-5" />}
+        rightIcon={isLastStep ? <FileText className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
       >
-        {isLastStep ? 'Review Estimate' : nextLabel}
+        {isLastStep ? 'Proceed to Contract' : nextLabel}
       </Button>
     </motion.div>
   );

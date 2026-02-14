@@ -7,9 +7,9 @@ import type {
   ConcreteConfig,
   PricingBreakdown,
   ContractConfig,
-  DoorConfig
 } from '../../types/estimator';
 import { CONTRACT_TERMS, COMPANY_INFO, PAYMENT_METHODS } from '../../constants/contractTerms';
+import { drawConstructionPages } from './constructionPlan';
 
 interface ContractPdfData {
   customer: CustomerInfo;
@@ -52,6 +52,7 @@ function formatAddress(address: { street: string; city: string; state: string; z
 
 // Helper to get color name from hex
 function getColorName(hex: string): string {
+  if (!hex) return 'N/A';
   const colorMap: Record<string, string> = {
     '#E8E8E8': 'Light Gray',
     '#D4D4D4': 'Gray',
@@ -67,171 +68,6 @@ function getColorName(hex: string): string {
     '#708090': 'Slate Gray'
   };
   return colorMap[hex.toUpperCase()] || hex;
-}
-
-// Draw 2D floor plan with door placements
-function drawFloorPlan(
-  doc: jsPDF,
-  building: BuildingConfig,
-  accessories: AccessoriesConfig,
-  startX: number,
-  startY: number,
-  maxWidth: number,
-  maxHeight: number
-): number {
-  const { width: bWidth, length: bLength } = building;
-
-  // Calculate scale to fit in available space
-  const scaleX = (maxWidth - 40) / bLength;
-  const scaleY = (maxHeight - 60) / bWidth;
-  const scale = Math.min(scaleX, scaleY, 2); // Cap scale at 2
-
-  const planWidth = bLength * scale;
-  const planHeight = bWidth * scale;
-
-  // Center the plan
-  const planX = startX + (maxWidth - planWidth) / 2;
-  const planY = startY + 25;
-
-  // Draw building outline
-  doc.setDrawColor(33, 33, 33);
-  doc.setLineWidth(0.8);
-  doc.rect(planX, planY, planWidth, planHeight);
-
-  // Draw dimension lines and labels
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(102, 102, 102);
-
-  // Length dimension (top)
-  doc.line(planX, planY - 5, planX + planWidth, planY - 5);
-  doc.line(planX, planY - 8, planX, planY - 2);
-  doc.line(planX + planWidth, planY - 8, planX + planWidth, planY - 2);
-  doc.text(`${bLength}'`, planX + planWidth / 2, planY - 8, { align: 'center' });
-
-  // Width dimension (left)
-  doc.line(planX - 5, planY, planX - 5, planY + planHeight);
-  doc.line(planX - 8, planY, planX - 2, planY);
-  doc.line(planX - 8, planY + planHeight, planX - 2, planY + planHeight);
-
-  // Rotate text for width - use save/restore
-  const widthLabel = `${bWidth}'`;
-  doc.text(widthLabel, planX - 12, planY + planHeight / 2, { angle: 90 });
-
-  // Label the sides
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(20, 184, 166);
-
-  doc.text('FRONT', planX + planWidth / 2, planY + planHeight + 12, { align: 'center' });
-  doc.text('BACK', planX + planWidth / 2, planY - 15, { align: 'center' });
-  doc.text('LEFT', planX - 18, planY + planHeight / 2, { angle: 90 });
-  doc.text('RIGHT', planX + planWidth + 8, planY + planHeight / 2, { angle: -90 });
-
-  // Draw doors
-  const allDoors = [...accessories.walkDoors, ...accessories.rollUpDoors];
-
-  // Group doors by wall
-  const doorsByWall: Record<string, DoorConfig[]> = {
-    front: [],
-    back: [],
-    left: [],
-    right: []
-  };
-
-  allDoors.forEach(door => {
-    if (doorsByWall[door.wall]) {
-      doorsByWall[door.wall].push(door);
-    }
-  });
-
-  // Draw doors on each wall
-  const doorColors = {
-    walk: [255, 106, 0] as [number, number, number],    // Orange for walk doors
-    rollUp: [20, 184, 166] as [number, number, number]  // Teal for roll-up doors
-  };
-
-  // Helper to draw a door
-  const drawDoor = (
-    x: number,
-    y: number,
-    doorWidth: number,
-    doorHeight: number,
-    door: DoorConfig,
-    isVertical: boolean
-  ) => {
-    const color = doorColors[door.type];
-    doc.setFillColor(...color);
-    doc.setDrawColor(...color);
-
-    if (isVertical) {
-      doc.rect(x, y, doorWidth, doorHeight, 'F');
-    } else {
-      doc.rect(x, y, doorHeight, doorWidth, 'F');
-    }
-
-    // Door label
-    doc.setFontSize(6);
-    doc.setTextColor(255, 255, 255);
-    const label = door.type === 'walk' ? 'W' : 'R';
-    if (isVertical) {
-      doc.text(label, x + doorWidth / 2, y + doorHeight / 2 + 1, { align: 'center' });
-    } else {
-      doc.text(label, x + doorHeight / 2, y + doorWidth / 2 + 1, { align: 'center' });
-    }
-  };
-
-  // Position doors on each wall
-  const doorThickness = 3;
-
-  // Front wall doors (bottom of plan)
-  let frontOffset = planWidth * 0.2;
-  doorsByWall.front.forEach((door, idx) => {
-    const doorWidthPx = parseFloat(door.size.split('x')[0]) * scale * 0.8;
-    const xPos = planX + frontOffset + (idx * (doorWidthPx + 10));
-    drawDoor(xPos, planY + planHeight - doorThickness, doorWidthPx, doorThickness, door, false);
-  });
-
-  // Back wall doors (top of plan)
-  let backOffset = planWidth * 0.2;
-  doorsByWall.back.forEach((door, idx) => {
-    const doorWidthPx = parseFloat(door.size.split('x')[0]) * scale * 0.8;
-    const xPos = planX + backOffset + (idx * (doorWidthPx + 10));
-    drawDoor(xPos, planY, doorWidthPx, doorThickness, door, false);
-  });
-
-  // Left wall doors
-  let leftOffset = planHeight * 0.2;
-  doorsByWall.left.forEach((door, idx) => {
-    const doorWidthPx = parseFloat(door.size.split('x')[0]) * scale * 0.8;
-    const yPos = planY + leftOffset + (idx * (doorWidthPx + 10));
-    drawDoor(planX, yPos, doorThickness, doorWidthPx, door, true);
-  });
-
-  // Right wall doors
-  let rightOffset = planHeight * 0.2;
-  doorsByWall.right.forEach((door, idx) => {
-    const doorWidthPx = parseFloat(door.size.split('x')[0]) * scale * 0.8;
-    const yPos = planY + rightOffset + (idx * (doorWidthPx + 10));
-    drawDoor(planX + planWidth - doorThickness, yPos, doorThickness, doorWidthPx, door, true);
-  });
-
-  // Legend
-  const legendY = planY + planHeight + 25;
-  doc.setFontSize(7);
-  doc.setTextColor(33, 33, 33);
-  doc.text('LEGEND:', startX, legendY);
-
-  doc.setFillColor(...doorColors.walk);
-  doc.rect(startX + 25, legendY - 3, 8, 4, 'F');
-  doc.text('Walk Door', startX + 35, legendY);
-
-  doc.setFillColor(...doorColors.rollUp);
-  doc.rect(startX + 70, legendY - 3, 8, 4, 'F');
-  doc.text('Roll-Up Door', startX + 80, legendY);
-
-  // Return the Y position after the plan
-  return legendY + 10;
 }
 
 export async function generateContractPdf(data: ContractPdfData): Promise<jsPDF> {
@@ -409,7 +245,7 @@ export async function generateContractPdf(data: ContractPdfData): Promise<jsPDF>
   doc.setFont('helvetica', 'normal');
   const concreteText = concrete.type === 'none' ? 'None (Owner Provides)' :
                        concrete.type === 'piers' ? 'Concrete Piers' :
-                       concrete.type === 'slab' ? `${concrete.thickness}" Slab` : 'Turnkey Package';
+                       concrete.type === 'slab' ? '4" Slab w/ #3 Rebar' : 'Turnkey Package w/ #3 Rebar';
   doc.text(concreteText, col2, specStartY + 32);
 
   doc.setFont('helvetica', 'bold');
@@ -481,28 +317,6 @@ export async function generateContractPdf(data: ContractPdfData): Promise<jsPDF>
   drawLine(yPos);
   yPos += 8;
 
-  // ===== 2D FLOOR PLAN =====
-  addNewPageIfNeeded(100);
-
-  doc.setTextColor(...textColor);
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text('BUILDING FLOOR PLAN - DOOR PLACEMENT', margin, yPos);
-  yPos += 3;
-
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...grayColor);
-  doc.text('Aerial view showing door locations (not to scale)', margin, yPos + 5);
-  yPos += 8;
-
-  // Draw the floor plan
-  yPos = drawFloorPlan(doc, building, accessories, margin, yPos, contentWidth, 80);
-
-  yPos += 5;
-  drawLine(yPos);
-  yPos += 8;
-
   // ===== CONTRACT SUM =====
   doc.setTextColor(...textColor);
   doc.setFontSize(12);
@@ -515,11 +329,10 @@ export async function generateContractPdf(data: ContractPdfData): Promise<jsPDF>
   doc.setFont('helvetica', 'normal');
 
   const pricingItems = [
-    { label: 'Base Building Package', amount: pricing.basePrice },
+    { label: 'Base Building Package (includes install)', amount: pricing.basePrice },
     { label: 'Doors, Windows & Accessories', amount: pricing.accessoriesTotal },
     { label: 'Concrete Work', amount: pricing.concreteTotal },
-    { label: 'Labor & Installation', amount: pricing.laborTotal },
-    { label: 'Delivery', amount: pricing.deliveryTotal }
+    { label: 'Delivery + Haul Off', amount: pricing.deliveryTotal }
   ];
 
   pricingItems.forEach(item => {
@@ -757,6 +570,104 @@ export async function generateContractPdf(data: ContractPdfData): Promise<jsPDF>
   doc.setTextColor(...grayColor);
   doc.text('This contract was generated electronically and is legally binding when signed by all parties.', margin, pageHeight - 15);
   doc.text(`Document ID: ${Date.now().toString(36).toUpperCase()}`, pageWidth - margin, pageHeight - 15, { align: 'right' });
+
+  // ===== EXHIBIT A — COVER PAGE =====
+  doc.addPage();
+  const exPw = doc.internal.pageSize.getWidth();
+  const exPh = doc.internal.pageSize.getHeight();
+
+  // Centered "EXHIBIT A" title
+  doc.setFillColor(...primaryColor);
+  doc.rect(0, 0, exPw, 35, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(26);
+  doc.setFont('helvetica', 'bold');
+  doc.text('EXHIBIT A', exPw / 2, 22, { align: 'center' });
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text('CONSTRUCTION PLANS', exPw / 2, 32, { align: 'center' });
+
+  // Project summary box
+  let ey = 55;
+  doc.setDrawColor(...lightGray); doc.setLineWidth(0.5);
+  doc.roundedRect(margin, ey, contentWidth, 80, 3, 3, 'S');
+
+  doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(...textColor);
+  doc.text('PROJECT INFORMATION', margin + 5, ey + 10);
+  doc.setDrawColor(...lightGray); doc.setLineWidth(0.2);
+  doc.line(margin + 5, ey + 13, margin + contentWidth - 5, ey + 13);
+
+  doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(...grayColor);
+  const exFields: [string, string][] = [
+    ['Client', customer.name || 'N/A'],
+    ['Project', `${building.width}' × ${building.length}' Metal Building`],
+    ['Type', building.buildingType === 'pole-barn' ? 'Pole Barn' : building.buildingType === 'carport' ? 'Carport' : building.buildingType === 'i-beam' ? 'I-Beam Construction' : 'Pre-Engineered Bolt-Up'],
+    ['Eave Height', `${building.height}'-0"`],
+    ['Construction Address', customer.constructionAddress ? `${customer.constructionAddress.street}, ${customer.constructionAddress.city}, ${customer.constructionAddress.state} ${customer.constructionAddress.zip}` : 'N/A'],
+    ['Date', new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })],
+  ];
+  let efy = ey + 22;
+  for (const [k, v] of exFields) {
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(...textColor);
+    doc.text(`${k}:`, margin + 8, efy);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(...grayColor);
+    doc.text(v, margin + 50, efy);
+    efy += 9;
+  }
+
+  // Sheet index
+  ey = 150;
+  doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(...textColor);
+  doc.text('SHEET INDEX', margin + 5, ey);
+  doc.setDrawColor(...lightGray); doc.setLineWidth(0.2);
+  doc.line(margin + 5, ey + 3, margin + contentWidth - 5, ey + 3);
+
+  doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+  const sheets = [
+    ['S-1', 'Aerial / Site Plan'],
+    ['S-2', 'Front & Rear Elevations'],
+    ['S-3', 'Left & Right Elevations'],
+    ['S-4', 'Roof Plan'],
+    ['S-5', 'Foundation / Concrete Plan'],
+    ['S-6', 'Door & Window Schedule + Construction Notes'],
+  ];
+  let siy = ey + 12;
+  for (const [num, title] of sheets) {
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(...primaryColor);
+    doc.text(num, margin + 10, siy);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(...grayColor);
+    doc.text(title, margin + 30, siy);
+    siy += 8;
+  }
+
+  // Footer note
+  doc.setFontSize(8); doc.setFont('helvetica', 'italic'); doc.setTextColor(...grayColor);
+  doc.text('These construction plans are an integral part of the contract and are incorporated by reference.', exPw / 2, exPh - 25, { align: 'center' });
+  doc.text('All dimensions and specifications must be verified on site prior to construction.', exPw / 2, exPh - 18, { align: 'center' });
+
+  // ===== CONSTRUCTION PLAN SHEETS (S-1 through S-6) =====
+  try {
+    drawConstructionPages(doc, {
+      customer,
+      building,
+      accessories,
+      concrete,
+      colors,
+    });
+  } catch (planErr) {
+    console.error('Construction plan generation failed:', planErr);
+    // Add a fallback page so the contract is still usable
+    doc.addPage();
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(200, 50, 50);
+    doc.text('Construction Plans could not be generated.', 20, 40);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(102, 102, 102);
+    doc.text('Error: ' + (planErr instanceof Error ? planErr.message : String(planErr)), 20, 52);
+    doc.text('Please contact support or regenerate the estimate.', 20, 62);
+  }
 
   return doc;
 }

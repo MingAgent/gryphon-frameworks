@@ -1,5 +1,12 @@
-// Contract Section Definitions
+// Contract Section Definitions - Condensed 3-Section Flow
 export const CONTRACT_SECTIONS = [
+  { id: 'termsAndConditions', title: '1. Terms & Conditions', requiresAck: true },
+  { id: 'responsibilitiesAndLegal', title: '2. Responsibilities & Legal', requiresAck: true },
+  { id: 'reviewAndSign', title: '3. Review & Sign', requiresAck: false }
+] as const;
+
+// Legacy section definitions (for reference)
+export const LEGACY_CONTRACT_SECTIONS = [
   { id: 'customerInfo', title: 'Customer Information', requiresAck: false },
   { id: 'projectOverview', title: '1. Project Overview', requiresAck: true },
   { id: 'paymentTerms', title: '2. Payment Terms', requiresAck: true },

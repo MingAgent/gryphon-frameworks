@@ -1,9 +1,10 @@
 import { motion } from 'framer-motion';
-import { Building2, Car, Wrench } from 'lucide-react';
+import { Building2, Car, Wrench, Columns } from 'lucide-react';
 import { useEstimatorStore } from '../../../store/estimatorStore';
 import { containerVariants, itemVariants } from '../../../animations/variants';
+import BoltUpQuoteForm from './BoltUpQuoteForm';
 
-type BuildingType = 'pole-barn' | 'carport' | 'bolt-up';
+type BuildingType = 'pole-barn' | 'carport' | 'i-beam' | 'bolt-up';
 
 interface BuildingTypeOption {
   id: BuildingType;
@@ -15,6 +16,18 @@ interface BuildingTypeOption {
 }
 
 const buildingTypes: BuildingTypeOption[] = [
+  {
+    id: 'carport',
+    name: 'Carport',
+    description: 'Open-sided structure perfect for vehicle protection',
+    icon: <Car className="w-8 h-8" />,
+    features: [
+      'Vehicle protection from elements',
+      'Easy access design',
+      'Economical option',
+      'Various size options'
+    ]
+  },
   {
     id: 'pole-barn',
     name: 'Pole Barn',
@@ -28,15 +41,15 @@ const buildingTypes: BuildingTypeOption[] = [
     ]
   },
   {
-    id: 'carport',
-    name: 'Car Port',
-    description: 'Open-sided structure perfect for vehicle protection',
-    icon: <Car className="w-8 h-8" />,
+    id: 'i-beam',
+    name: 'I-Beam Construction',
+    description: 'Heavy-duty steel I-beam frame for maximum strength and span',
+    icon: <Columns className="w-8 h-8" />,
     features: [
-      'Vehicle protection from elements',
-      'Easy access design',
-      'Economical option',
-      'Various size options'
+      'Superior load-bearing capacity',
+      'Wider clear spans available',
+      'Commercial & industrial grade',
+      '26-gauge steel panels'
     ]
   },
   {
@@ -72,7 +85,7 @@ export function Step2BuildingType() {
         Select the type of building you're interested in.
       </motion.p>
 
-      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {buildingTypes.map((type) => {
           const isSelected = building.buildingType === type.id;
 
@@ -138,7 +151,7 @@ export function Step2BuildingType() {
       </motion.div>
 
       {/* Info panel for selected type */}
-      {building.buildingType && (
+      {building.buildingType && building.buildingType !== 'bolt-up' && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -153,13 +166,21 @@ export function Step2BuildingType() {
                 {buildingTypes.find(t => t.id === building.buildingType)?.name} Selected
               </p>
               <p className="text-sm text-[#A3A3A3]">
-                {building.buildingType === 'bolt-up'
-                  ? 'A representative will contact you for a customized quote.'
-                  : 'Continue to configure your building specifications.'
-                }
+                Continue to configure your building specifications.
               </p>
             </div>
           </div>
+        </motion.div>
+      )}
+
+      {/* Bolt-Up Quote Form */}
+      {building.buildingType === 'bolt-up' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <BoltUpQuoteForm />
         </motion.div>
       )}
     </motion.div>

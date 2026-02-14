@@ -8,6 +8,7 @@
  */
 
 import ExcelJS from 'exceljs';
+import { calculatePurlins } from '../calculations/purlins';
 import type {
   BillOfMaterials,
   BOMLineItem,
@@ -129,7 +130,7 @@ export function generateBOM(state: EstimatorState): BillOfMaterials {
   lineItems.push(createLineItem(
     'STRUCTURE',
     'STL-FRM-001',
-    `Steel Frame - ${building.legType === 'certified' ? 'Certified 26ga' : 'Standard 29ga'}`,
+    `Steel Frame - 26ga ${building.legType === 'certified' ? '(Certified)' : '(Standard)'}`,
     sqft,
     'sqft',
     INTERNAL_COSTS.structure.steelFramePerSqft * (building.legType === 'certified' ? 1.15 : 1),
@@ -142,7 +143,7 @@ export function generateBOM(state: EstimatorState): BillOfMaterials {
   lineItems.push(createLineItem(
     'STRUCTURE',
     'RF-PNL-001',
-    `Roof Panels - ${colors.roof}`,
+    `26ga Roof Panels - ${colors.roof}`,
     sqft,
     'sqft',
     INTERNAL_COSTS.structure.roofPanelsPerSqft,
@@ -154,7 +155,7 @@ export function generateBOM(state: EstimatorState): BillOfMaterials {
   lineItems.push(createLineItem(
     'STRUCTURE',
     'WL-PNL-001',
-    `Wall Panels - ${colors.walls}`,
+    `26ga Wall Panels - ${colors.walls}`,
     wallSqft,
     'sqft',
     INTERNAL_COSTS.structure.wallPanelsPerSqft,
@@ -186,6 +187,39 @@ export function generateBOM(state: EstimatorState): BillOfMaterials {
     INTERNAL_COSTS.structure.trimPerLnft * 2.4,
     SUPPLIERS.steel.name
   ));
+
+  // Purlins — calculated per 13|7 FrameWorks rules
+  const purlinData = calculatePurlins(building.width, building.length, building.height);
+
+  // Sidewall purlins (girts)
+  if (purlinData.totalSidewallPurlins > 0) {
+    lineItems.push(createLineItem(
+      'STRUCTURE',
+      'PUR-SW-001',
+      `Sidewall Purlins (C-channel) — ${purlinData.sidewallPurlinsPerWall} per wall @ ${purlinData.sidewallPurlinLength}' ea`,
+      purlinData.totalSidewallPurlins,
+      'ea',
+      purlinData.sidewallPurlinLength * 1.75, // ~$1.75/ft internal cost
+      purlinData.sidewallPurlinLength * 3.50,  // ~$3.50/ft selling
+      SUPPLIERS.steel.name,
+      `Heights: ${purlinData.sidewallPurlinHeights.map(h => `${h}"`).join(', ')}`
+    ));
+  }
+
+  // Roof purlins
+  if (purlinData.totalRoofPurlins > 0) {
+    lineItems.push(createLineItem(
+      'STRUCTURE',
+      'PUR-RF-001',
+      `Roof Purlins (C-channel) — ${purlinData.roofPurlinsPerSide} per side @ ${purlinData.roofPurlinLength}' ea`,
+      purlinData.totalRoofPurlins,
+      'ea',
+      purlinData.roofPurlinLength * 1.75,
+      purlinData.roofPurlinLength * 3.50,
+      SUPPLIERS.steel.name,
+      `Spacing: ${purlinData.roofPurlinSpacing}' O.C. | Rafter: ${purlinData.iBeamLength}' | Pitch: ${purlinData.roofPitch}`
+    ));
+  }
 
   // Hardware Kit
   lineItems.push(createLineItem(
@@ -272,29 +306,29 @@ export function generateBOM(state: EstimatorState): BillOfMaterials {
   // --- CONCRETE ---
 
   if (concrete.type !== 'none' && !concrete.existingPad) {
-    const thicknessMultiplier = concrete.thickness === 5 ? 1.15 : concrete.thickness === 6 ? 1.30 : 1;
+    // All slabs are 4" with #3 rebar — no thickness multiplier needed
 
     if (concrete.type === 'piers') {
       const numPiers = Math.ceil(perimeter / 10);
       lineItems.push(createLineItem(
         'CONCRETE',
         'CON-PIER-001',
-        `Concrete Piers (${concrete.thickness}" thick)`,
+        'Concrete Piers',
         numPiers,
         'ea',
-        INTERNAL_COSTS.concrete.piersEach * thicknessMultiplier,
-        SELLING_PRICES.concrete.piers * thicknessMultiplier,
+        INTERNAL_COSTS.concrete.piersEach,
+        SELLING_PRICES.concrete.piers,
         SUPPLIERS.concrete.name
       ));
     } else if (concrete.type === 'slab') {
       lineItems.push(createLineItem(
         'CONCRETE',
         'CON-SLAB-001',
-        `Concrete Slab (${concrete.thickness}" thick)`,
+        '4" Concrete Slab w/ #3 Rebar',
         sqft,
         'sqft',
-        INTERNAL_COSTS.concrete.slabPerSqft * thicknessMultiplier,
-        SELLING_PRICES.concrete.slab * thicknessMultiplier,
+        INTERNAL_COSTS.concrete.slabPerSqft,
+        SELLING_PRICES.concrete.slab,
         SUPPLIERS.concrete.name
       ));
 
@@ -302,7 +336,7 @@ export function generateBOM(state: EstimatorState): BillOfMaterials {
       lineItems.push(createLineItem(
         'CONCRETE',
         'CON-REBAR-001',
-        'Rebar & Mesh Reinforcement',
+        '#3 Rebar & Mesh Reinforcement',
         sqft,
         'sqft',
         INTERNAL_COSTS.concrete.rebar + INTERNAL_COSTS.concrete.meshReinforcement,
@@ -313,11 +347,11 @@ export function generateBOM(state: EstimatorState): BillOfMaterials {
       lineItems.push(createLineItem(
         'CONCRETE',
         'CON-TURN-001',
-        `Turnkey Concrete Package (${concrete.thickness}" thick)`,
+        '4" Turnkey Concrete Package w/ #3 Rebar',
         sqft,
         'sqft',
-        INTERNAL_COSTS.concrete.turnkeyPerSqft * thicknessMultiplier,
-        SELLING_PRICES.concrete.turnkey * thicknessMultiplier,
+        INTERNAL_COSTS.concrete.turnkeyPerSqft,
+        SELLING_PRICES.concrete.turnkey,
         SUPPLIERS.concrete.name
       ));
     }

@@ -8,13 +8,12 @@ import {
   BUILDING_SIZES,
   EAVE_HEIGHTS,
   LEG_TYPE_MULTIPLIERS,
-  DOOR_PRICES,
+  DOOR_PRICE_MATRIX,
+  WALK_DOOR_PRICES,
   WINDOW_PRICES,
   INSULATION_PRICES,
   OPTION_PRICES,
   CONCRETE_PRICES,
-  CONCRETE_THICKNESS_MULTIPLIERS,
-  LABOR_RATE_PER_SQFT,
   DELIVERY_BASE,
   DEPOSIT_PERCENTAGE
 } from '../../constants/pricing';
@@ -47,51 +46,44 @@ export function calculateBasePrice(building: BuildingConfig): number {
 
 /**
  * Calculate the total cost of accessories (doors, windows, insulation, etc.)
+ * Uses flat-rate pricing to match the estimate summary display.
  */
 export function calculateAccessoriesTotal(
-  building: BuildingConfig,
+  _building: BuildingConfig,
   accessories: AccessoriesConfig
 ): number {
   let total = 0;
 
-  // Walk doors
-  accessories.walkDoors.forEach(door => {
-    const price = DOOR_PRICES.walk[door.size] || 0;
-    total += price * door.quantity;
-  });
+  // Walk doors - first walk door included in base price, extras cost $1,045 each
+  const extraWalkDoors = Math.max(0, accessories.walkDoors.length - 1);
+  total += extraWalkDoors * WALK_DOOR_PRICES.extra_walkthrough;
 
-  // Roll-up doors
+  // Roll-up/overhead doors - use the height×width price matrix
   accessories.rollUpDoors.forEach(door => {
-    const price = DOOR_PRICES.rollUp[door.size] || 0;
-    total += price * door.quantity;
+    // door.size is stored as "WxH" or similar, door has height/width props
+    // Use DOOR_PRICE_MATRIX with key format "heightxwidth"
+    const key = `${door.height}x${door.width}`;
+    const price = DOOR_PRICE_MATRIX[key] || 0;
+    total += price;
   });
 
   // Windows
-  accessories.windows.forEach(window => {
-    const price = WINDOW_PRICES[window.size] || 0;
-    total += price * window.quantity;
+  accessories.windows.forEach(win => {
+    const price = WINDOW_PRICES[win.size] || 0;
+    total += price;
   });
 
-  // Insulation
-  const sqft = building.width * building.length;
-  const ceilingSqft = sqft;
-  const wallSqft = 2 * (building.width + building.length) * building.height;
+  // Insulation - FLAT RATE (not per sqft)
+  total += INSULATION_PRICES[accessories.insulation] || 0;
 
-  if (accessories.insulation === 'ceiling') {
-    total += ceilingSqft * INSULATION_PRICES.ceiling;
-  } else if (accessories.insulation === 'full') {
-    total += (ceilingSqft + wallSqft) * INSULATION_PRICES.full;
-  }
-
-  // Ventilation
+  // Ventilation - flat rate
   if (accessories.ventilation) {
     total += OPTION_PRICES.ventilation;
   }
 
-  // Gutters (per linear foot of eave)
+  // Gutters - FLAT RATE (not per linear foot)
   if (accessories.gutters) {
-    const gutterLength = building.length * 2; // Both sides
-    total += gutterLength * OPTION_PRICES.gutters;
+    total += OPTION_PRICES.gutters;
   }
 
   return total;
@@ -109,39 +101,38 @@ export function calculateConcreteTotal(
   }
 
   const sqft = building.width * building.length;
-  const thicknessMultiplier = CONCRETE_THICKNESS_MULTIPLIERS[concrete.thickness as keyof typeof CONCRETE_THICKNESS_MULTIPLIERS] || 1;
+  // All slabs are 4" with #3 rebar — no thickness multiplier needed
 
   if (concrete.type === 'piers') {
     // Estimate number of piers based on building size
     const perimeter = 2 * (building.width + building.length);
     const numPiers = Math.ceil(perimeter / 10); // One pier every 10 feet
-    return numPiers * CONCRETE_PRICES.piers * thicknessMultiplier;
+    return numPiers * CONCRETE_PRICES.piers;
   }
 
   if (concrete.type === 'slab') {
-    return sqft * CONCRETE_PRICES.slab * thicknessMultiplier;
+    return sqft * CONCRETE_PRICES.slab;
   }
 
   if (concrete.type === 'turnkey') {
-    return sqft * CONCRETE_PRICES.turnkey * thicknessMultiplier;
+    return sqft * CONCRETE_PRICES.turnkey;
   }
 
   return 0;
 }
 
 /**
- * Calculate labor costs
+ * Labor is included in the base building package — no separate charge
  */
-export function calculateLaborTotal(building: BuildingConfig): number {
-  const sqft = building.width * building.length;
-  return sqft * LABOR_RATE_PER_SQFT;
+export function calculateLaborTotal(_building: BuildingConfig): number {
+  return 0;
 }
 
 /**
- * Calculate delivery costs (base + distance)
+ * Delivery + Haul Off — flat rate
  */
-export function calculateDeliveryTotal(distanceMiles: number = 50): number {
-  return DELIVERY_BASE + (distanceMiles * 0); // Simplified - no per-mile charge for now
+export function calculateDeliveryTotal(_distanceMiles: number = 50): number {
+  return DELIVERY_BASE;
 }
 
 /**
@@ -156,17 +147,17 @@ export function calculateTotalPrice(
   const basePrice = calculateBasePrice(building);
   const accessoriesTotal = calculateAccessoriesTotal(building, accessories);
   const concreteTotal = calculateConcreteTotal(building, concrete);
-  const laborTotal = calculateLaborTotal(building);
+  // Labor is included in base building package — no separate charge
   const deliveryTotal = calculateDeliveryTotal(distanceMiles);
 
-  const grandTotal = basePrice + accessoriesTotal + concreteTotal + laborTotal + deliveryTotal;
+  const grandTotal = basePrice + accessoriesTotal + concreteTotal + deliveryTotal;
   const depositAmount = grandTotal * DEPOSIT_PERCENTAGE;
 
   return {
     basePrice: Math.round(basePrice * 100) / 100,
     accessoriesTotal: Math.round(accessoriesTotal * 100) / 100,
     concreteTotal: Math.round(concreteTotal * 100) / 100,
-    laborTotal: Math.round(laborTotal * 100) / 100,
+    laborTotal: 0,
     deliveryTotal: Math.round(deliveryTotal * 100) / 100,
     grandTotal: Math.round(grandTotal * 100) / 100,
     depositAmount: Math.round(depositAmount * 100) / 100

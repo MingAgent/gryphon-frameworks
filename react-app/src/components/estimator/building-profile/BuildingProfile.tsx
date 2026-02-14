@@ -60,6 +60,7 @@ export function BuildingProfile({
   const roofColor = colors.roof;
   const wallColor = colors.walls;
   const trimColor = colors.trim;
+  const doorColor = colors.doors;
 
   // Get doors for the current view
   const allDoors = [...accessories.walkDoors, ...accessories.rollUpDoors];
@@ -234,7 +235,7 @@ export function BuildingProfile({
                 y={doorPos.y}
                 width={doorPos.width}
                 height={doorPos.height}
-                fill={isWalkDoor ? '#4a3728' : '#5a4535'}
+                fill={doorColor}
                 stroke={isSelected ? '#14B8A6' : trimColor}
                 strokeWidth={isSelected ? 3 : 2}
               />
@@ -248,8 +249,8 @@ export function BuildingProfile({
                     y={doorPos.y + 4}
                     width={doorPos.width - 8}
                     height={doorPos.height - 8}
-                    fill="#3d2d1f"
-                    stroke="#2a1f14"
+                    fill={doorColor}
+                    stroke="rgba(0,0,0,0.2)"
                     strokeWidth="1"
                   />
                   {/* Door handle */}
@@ -257,7 +258,7 @@ export function BuildingProfile({
                     cx={doorPos.x + doorPos.width - 8}
                     cy={doorPos.y + doorPos.height / 2}
                     r={3}
-                    fill="#c4a882"
+                    fill="#888"
                   />
                 </>
               ) : (
@@ -270,7 +271,7 @@ export function BuildingProfile({
                       y1={doorPos.y + 10 + i * 15}
                       x2={doorPos.x + doorPos.width - 2}
                       y2={doorPos.y + 10 + i * 15}
-                      stroke="#3d2d1f"
+                      stroke="rgba(0,0,0,0.15)"
                       strokeWidth="1"
                     />
                   ))}

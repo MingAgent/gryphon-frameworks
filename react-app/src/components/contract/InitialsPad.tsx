@@ -147,7 +147,7 @@ export function InitialsPad({
   return (
     <div className={`initials-pad-container inline-block ${className}`}>
       {label && (
-        <label className="block text-xs font-semibold text-[#A3A3A3] mb-1">
+        <label className="block text-xs font-semibold text-gray-500 mb-1">
           {label} {required && <span className="text-[#FF6A00]">*</span>}
         </label>
       )}
@@ -158,7 +158,7 @@ export function InitialsPad({
             relative rounded-lg overflow-hidden border-2 transition-all duration-200
             ${hasInitials
               ? 'border-[#14B8A6] bg-white'
-              : 'border-white/20 bg-white'
+              : 'border-gray-300 bg-white'
             }
             ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-crosshair'}
           `}
@@ -203,7 +203,7 @@ export function InitialsPad({
           <button
             type="button"
             onClick={clearInitials}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-[#A3A3A3] hover:text-white hover:bg-white/10 transition-all active:bg-white/20"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-all active:bg-gray-200"
             title="Clear initials"
           >
             <Eraser className="w-5 h-5" />

@@ -2,7 +2,6 @@ import { motion } from 'framer-motion';
 import { Layers, Info } from 'lucide-react';
 import { useEstimatorStore } from '../../../store/estimatorStore';
 import { containerVariants, itemVariants } from '../../../animations/variants';
-import Select from '../../common/Select/Select';
 import Card from '../../common/Card/Card';
 
 const concreteOptions = [
@@ -21,7 +20,7 @@ const concreteOptions = [
   {
     value: 'slab',
     label: 'Concrete Slab',
-    description: 'Full concrete floor slab for the building',
+    description: '4" concrete slab with #3 rebar, vapor barrier & control joints',
     icon: '⬛'
   },
   {
@@ -32,11 +31,7 @@ const concreteOptions = [
   }
 ];
 
-const thicknessOptions = [
-  { value: 4, label: '4 inches (Standard)' },
-  { value: 5, label: '5 inches (Heavy Duty)' },
-  { value: 6, label: '6 inches (Industrial)' }
-];
+// All slabs are 4" with #3 rebar — no thickness selection needed
 
 export function Step5Concrete() {
   const { concrete, building, setConcreteConfig } = useEstimatorStore();
@@ -128,20 +123,16 @@ export function Step5Concrete() {
             </motion.div>
           )}
 
-          {/* Thickness Selection */}
+          {/* Slab Spec Note */}
           {(concrete.type === 'slab' || concrete.type === 'turnkey') && !concrete.existingPad && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
+              className="bg-blue-50 rounded-lg p-4 border border-blue-200"
             >
-              <Select
-                label="Concrete Thickness"
-                options={thicknessOptions}
-                value={concrete.thickness}
-                onChange={(e) => setConcreteConfig({ thickness: Number(e.target.value) })}
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                Thicker concrete provides more durability and load-bearing capacity.
+              <p className="text-sm font-medium text-gray-800">4" concrete slab with #3 rebar</p>
+              <p className="text-xs text-gray-500 mt-1">
+                All slabs include vapor barrier and control joints.
               </p>
             </motion.div>
           )}
@@ -235,8 +226,8 @@ export function Step5Concrete() {
             <ul className="text-sm text-gray-600 space-y-2">
               <li>• Consider local building codes and permit requirements</li>
               <li>• Proper drainage around the foundation is essential</li>
-              <li>• For vehicle storage, 4" thickness is usually sufficient</li>
-              <li>• Heavy equipment may require 5" or 6" concrete</li>
+              <li>• All slabs are 4" with #3 rebar for reliable strength</li>
+              <li>• Ideal for vehicle storage, workshops, and equipment</li>
             </ul>
           </Card>
         </motion.div>

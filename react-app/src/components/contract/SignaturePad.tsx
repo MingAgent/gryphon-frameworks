@@ -163,7 +163,7 @@ export function SignaturePad({
   return (
     <div ref={containerRef} className={`signature-pad-container w-full ${className}`}>
       {label && (
-        <label className="block text-sm font-semibold text-white mb-2">
+        <label className="block text-sm font-semibold text-gray-900 mb-2">
           {label}
           {required && <span className="text-red-400 ml-1">*</span>}
         </label>
@@ -173,8 +173,8 @@ export function SignaturePad({
         className={`
           relative rounded-xl overflow-hidden border-2 transition-all duration-200
           ${hasSignature
-            ? 'border-[#14B8A6] bg-[#14B8A6]/5'
-            : 'border-white/20 bg-[#1e2a45]'
+            ? 'border-[#14B8A6] bg-white'
+            : 'border-gray-300 bg-gray-50'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-crosshair'}
         `}
@@ -182,13 +182,13 @@ export function SignaturePad({
       >
         {/* Signature line */}
         <div
-          className="absolute bottom-8 left-4 right-4 border-b border-dashed border-white/20"
+          className="absolute bottom-8 left-4 right-4 border-b border-dashed border-gray-300"
           style={{ pointerEvents: 'none' }}
         />
 
         {/* X mark for signature */}
         <div
-          className="absolute bottom-4 left-4 text-white/30 text-sm font-medium"
+          className="absolute bottom-4 left-4 text-gray-300 text-sm font-medium"
           style={{ pointerEvents: 'none' }}
         >
           ✕
@@ -229,7 +229,7 @@ export function SignaturePad({
         <button
           type="button"
           onClick={clearSignature}
-          className="mt-2 flex items-center gap-2 text-sm text-[#A3A3A3] hover:text-white transition-colors min-h-[44px] px-3 py-2 -ml-3 rounded-lg hover:bg-white/5"
+          className="mt-2 flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors min-h-[44px] px-3 py-2 -ml-3 rounded-lg hover:bg-gray-100"
         >
           <Eraser className="w-4 h-4" />
           Clear signature

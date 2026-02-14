@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Palette } from 'lucide-react';
 import { useEstimatorStore } from '../../../store/estimatorStore';
 import { containerVariants, itemVariants } from '../../../animations/variants';
-import { ROOF_COLORS, WALL_COLORS, TRIM_COLORS } from '../../../constants/colors';
+import { ROOF_COLORS, WALL_COLORS, TRIM_COLORS, DOOR_COLORS } from '../../../constants/colors';
 import { BuildingProfile } from '../building-profile/BuildingProfile';
 import type { ColorOption } from '../../../constants/colors';
 
@@ -112,6 +112,13 @@ export function Step5Colors() {
           selectedColor={colors.trim}
           onSelect={(hex) => setColors({ trim: hex })}
         />
+
+        <ColorSection
+          title="Doors"
+          colors={DOOR_COLORS}
+          selectedColor={colors.doors}
+          onSelect={(hex) => setColors({ doors: hex })}
+        />
       </motion.div>
 
       {/* Building Preview with Colors */}
@@ -158,11 +165,12 @@ export function Step5Colors() {
       {/* Color Summary */}
       <motion.div variants={itemVariants} className="bg-[#1e2a45] rounded-xl p-4 border border-white/10">
         <h4 className="font-semibold text-white mb-3">Your Color Selections</h4>
-        <div className="flex gap-6">
+        <div className="flex flex-wrap gap-6">
           {[
             { label: 'Walls', color: colors.walls, colorList: WALL_COLORS },
             { label: 'Roof', color: colors.roof, colorList: ROOF_COLORS },
-            { label: 'Trim', color: colors.trim, colorList: TRIM_COLORS }
+            { label: 'Trim', color: colors.trim, colorList: TRIM_COLORS },
+            { label: 'Doors', color: colors.doors, colorList: DOOR_COLORS }
           ].map(({ label, color, colorList }) => (
             <div key={label} className="flex items-center gap-2">
               <div

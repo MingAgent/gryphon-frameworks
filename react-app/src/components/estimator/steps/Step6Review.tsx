@@ -245,8 +245,8 @@ export function Step6Review() {
               )}
               {(concrete.type === 'slab' || concrete.type === 'turnkey') && !concrete.existingPad && (
                 <div className="flex justify-between mt-2">
-                  <span className="text-gray-500">Thickness:</span>
-                  <span className="font-medium text-gray-800">{concrete.thickness}"</span>
+                  <span className="text-gray-500">Spec:</span>
+                  <span className="font-medium text-gray-800">4" w/ #3 Rebar</span>
                 </div>
               )}
             </div>
@@ -256,35 +256,31 @@ export function Step6Review() {
         {/* Right Column - Pricing */}
         <div className="lg:col-span-1">
           <motion.div variants={itemVariants} className="sticky top-4">
-            <Card className="bg-gradient-to-br from-orange-600 to-orange-700 text-white">
+            <Card className="bg-white border border-gray-200 shadow-sm">
               <div className="flex items-center gap-2 mb-6">
-                <Calculator className="w-6 h-6" />
-                <h3 className="text-xl font-bold">Estimate Summary</h3>
+                <Calculator className="w-6 h-6 text-orange-500" />
+                <h3 className="text-xl font-bold text-gray-900">Estimate Summary</h3>
               </div>
 
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-orange-100">Building Structure:</span>
-                  <span className="font-semibold">{formatCurrency(pricing.basePrice)}</span>
+                  <span className="text-gray-500">Building Structure:</span>
+                  <span className="font-semibold text-gray-800">{formatCurrency(pricing.basePrice)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-orange-100">Accessories:</span>
-                  <span className="font-semibold">{formatCurrency(pricing.accessoriesTotal)}</span>
+                  <span className="text-gray-500">Accessories:</span>
+                  <span className="font-semibold text-gray-800">{formatCurrency(pricing.accessoriesTotal)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-orange-100">Concrete/Foundation:</span>
-                  <span className="font-semibold">{formatCurrency(pricing.concreteTotal)}</span>
+                  <span className="text-gray-500">Concrete/Foundation:</span>
+                  <span className="font-semibold text-gray-800">{formatCurrency(pricing.concreteTotal)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-orange-100">Installation Labor:</span>
-                  <span className="font-semibold">{formatCurrency(pricing.laborTotal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-orange-100">Delivery:</span>
-                  <span className="font-semibold">{formatCurrency(pricing.deliveryTotal)}</span>
+                  <span className="text-gray-500">Delivery + Haul Off:</span>
+                  <span className="font-semibold text-gray-800">{formatCurrency(pricing.deliveryTotal)}</span>
                 </div>
 
-                <div className="border-t border-orange-400 my-4" />
+                <div className="border-t border-gray-200 my-4" />
 
                 <motion.div
                   variants={priceVariants}
@@ -293,18 +289,18 @@ export function Step6Review() {
                   className="flex justify-between items-center"
                   key={pricing.grandTotal}
                 >
-                  <span className="text-lg font-bold">Total Estimate:</span>
-                  <span className="text-2xl font-bold">{formatCurrency(pricing.grandTotal)}</span>
+                  <span className="text-lg font-bold text-gray-900">Total Estimate:</span>
+                  <span className="text-2xl font-bold text-orange-600">{formatCurrency(pricing.grandTotal)}</span>
                 </motion.div>
 
-                <div className="border-t border-orange-400 my-4" />
+                <div className="border-t border-gray-200 my-4" />
 
-                <div className="bg-orange-800 bg-opacity-50 rounded-lg p-4">
+                <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium">Deposit Required (35%):</span>
-                    <span className="text-xl font-bold">{formatCurrency(pricing.depositAmount)}</span>
+                    <span className="font-medium text-gray-800">Deposit Required (35%):</span>
+                    <span className="text-xl font-bold text-orange-600">{formatCurrency(pricing.depositAmount)}</span>
                   </div>
-                  <p className="text-xs text-orange-200">
+                  <p className="text-xs text-gray-500">
                     Balance due upon completion of installation
                   </p>
                 </div>
@@ -313,21 +309,21 @@ export function Step6Review() {
               <div className="mt-6 space-y-3">
                 <Button
                   variant="secondary"
-                  className="w-full bg-white text-orange-600 hover:bg-orange-50"
+                  className="w-full bg-orange-500 text-white hover:bg-orange-600"
                 >
                   Download PDF Estimate
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full border-white text-white hover:bg-orange-700"
+                  className="w-full border-orange-300 text-orange-600 hover:bg-orange-50"
                 >
                   Email Estimate
                 </Button>
               </div>
 
               {/* Internal BOM Export - Staff Only */}
-              <div className="mt-4 pt-4 border-t border-orange-500">
-                <div className="flex items-center gap-2 text-orange-200 text-xs mb-2">
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center gap-2 text-gray-400 text-xs mb-2">
                   <AlertTriangle className="w-3 h-3" />
                   <span>Staff Only - Internal Document</span>
                 </div>

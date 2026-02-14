@@ -11,7 +11,8 @@ import type {
   ContractSectionState,
   DoorConfig,
   WindowConfig,
-  PaymentMethod
+  PaymentMethod,
+  BoltUpQuote
 } from '../types/estimator';
 import { calculateTotalPrice } from '../utils/calculations/pricing';
 import { DEFAULT_COLORS } from '../constants/colors';
@@ -67,7 +68,8 @@ const initialAccessories: AccessoriesConfig = {
 const initialColors: ColorConfig = {
   roof: DEFAULT_COLORS.roof,
   walls: DEFAULT_COLORS.walls,
-  trim: DEFAULT_COLORS.trim
+  trim: DEFAULT_COLORS.trim,
+  doors: DEFAULT_COLORS.doors
 };
 
 const initialConcrete: ConcreteConfig = {
@@ -109,6 +111,52 @@ const initialContract: ContractConfig = {
   contractSentAt: null
 };
 
+const initialBoltUpQuote: BoltUpQuote = {
+  // Building Use
+  buildingUse: '',
+  useDetails: '',
+  // Dimensions
+  width: '',
+  length: '',
+  eaveHeight: '',
+  roofPitch: '',
+  framingType: '',
+  roofType: '',
+  // Location & Engineering
+  siteCity: '',
+  siteZip: '',
+  windSpeed: '',
+  snowLoad: '',
+  collateralLoad: '',
+  // Openings
+  overheadDoors: '',
+  walkDoors: '',
+  windows: '',
+  loadingDocks: '',
+  // Wall & Roof Systems
+  wallPanelType: '',
+  wallInsulation: '',
+  roofInsulation: '',
+  // Special Features
+  hasMezzanine: false,
+  hasCrane: false,
+  hasSkylights: false,
+  hasCanopies: false,
+  hasGutters: false,
+  hasSprinklers: false,
+  // Crane Details
+  craneCapacity: '',
+  craneHookHeight: '',
+  craneSpan: '',
+  // Mezzanine Details
+  mezzanineSize: '',
+  mezzanineLoad: '',
+  // Timeline & Budget
+  timeline: '',
+  budget: '',
+  additionalNotes: ''
+};
+
 export const useEstimatorStore = create<EstimatorStore>()(
   persist(
     (set, get) => ({
@@ -131,13 +179,15 @@ export const useEstimatorStore = create<EstimatorStore>()(
         depositAmount: 0
       },
       contract: initialContract,
+      boltUpQuote: initialBoltUpQuote,
 
-      // Navigation Actions
+      // Navigation Actions — always scroll to top on step change
       nextStep: () => {
         const { currentStep } = get();
         if (currentStep < 8) {
           set({ currentStep: currentStep + 1 });
           get().calculatePricing();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }
       },
 
@@ -145,6 +195,7 @@ export const useEstimatorStore = create<EstimatorStore>()(
         const { currentStep } = get();
         if (currentStep > 1) {
           set({ currentStep: currentStep - 1 });
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }
       },
 
@@ -152,6 +203,7 @@ export const useEstimatorStore = create<EstimatorStore>()(
         if (step >= 1 && step <= 8) {
           set({ currentStep: step });
           get().calculatePricing();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }
       },
 
@@ -159,6 +211,7 @@ export const useEstimatorStore = create<EstimatorStore>()(
         const { currentContractSection } = get();
         if (currentContractSection < 7) {
           set({ currentContractSection: currentContractSection + 1 });
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }
       },
 
@@ -166,6 +219,7 @@ export const useEstimatorStore = create<EstimatorStore>()(
         const { currentContractSection } = get();
         if (currentContractSection > 1) {
           set({ currentContractSection: currentContractSection - 1 });
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }
       },
 
@@ -174,6 +228,7 @@ export const useEstimatorStore = create<EstimatorStore>()(
           set((state) => ({
             contract: { ...state.contract, currentSection: section }
           }));
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }
       },
 
@@ -351,6 +406,13 @@ export const useEstimatorStore = create<EstimatorStore>()(
         }));
       },
 
+      // Bolt-Up Quote
+      setBoltUpQuote: (quote) => {
+        set((state) => ({
+          boltUpQuote: { ...state.boltUpQuote, ...quote }
+        }));
+      },
+
       // Door Management
       addDoor: (door: DoorConfig) => {
         set((state) => {
@@ -466,7 +528,8 @@ export const useEstimatorStore = create<EstimatorStore>()(
             depositPaid: false,
             contractSent: false,
             contractSentAt: null
-          }
+          },
+          boltUpQuote: { ...initialBoltUpQuote }
         });
       },
 
@@ -491,7 +554,8 @@ export const useEstimatorStore = create<EstimatorStore>()(
         doorPositions: state.doorPositions,
         colors: state.colors,
         concrete: state.concrete,
-        contract: state.contract
+        contract: state.contract,
+        boltUpQuote: state.boltUpQuote
       }),
       // Merge persisted state with initial state to handle schema migrations
       merge: (persistedState, currentState) => {
@@ -548,6 +612,11 @@ export const useEstimatorStore = create<EstimatorStore>()(
               ...initialContract.signatures,
               ...(persisted.contract?.signatures || {})
             }
+          },
+          // Deep merge boltUpQuote
+          boltUpQuote: {
+            ...initialBoltUpQuote,
+            ...(persisted.boltUpQuote || {})
           }
         };
       }

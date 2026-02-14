@@ -13,8 +13,8 @@ export function ContractProgress({
   onSectionClick
 }: ContractProgressProps) {
   return (
-    <div className="bg-[#1e2a45] rounded-xl border border-white/10 p-4 sticky top-4">
-      <h3 className="text-sm font-semibold text-white uppercase tracking-wide mb-4">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 sticky top-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">
         Contract Progress
       </h3>
 
@@ -34,7 +34,7 @@ export function ContractProgress({
                 ${isCurrent
                   ? 'bg-[#14B8A6]/10 border border-[#14B8A6]/30'
                   : canNavigate
-                    ? 'hover:bg-white/5 border border-transparent'
+                    ? 'hover:bg-gray-100 border border-transparent'
                     : 'opacity-50 cursor-not-allowed border border-transparent'
                 }
               `}
@@ -46,7 +46,7 @@ export function ContractProgress({
                   ? 'bg-[#14B8A6] text-white'
                   : isCurrent
                     ? 'border-2 border-[#14B8A6] text-[#14B8A6]'
-                    : 'border-2 border-white/20 text-white/40'
+                    : 'border-2 border-gray-300 text-gray-400'
                 }
               `}>
                 {isComplete ? (
@@ -63,16 +63,16 @@ export function ContractProgress({
                 <span className={`
                   block text-sm truncate
                   ${isCurrent
-                    ? 'text-white font-medium'
+                    ? 'text-gray-900 font-medium'
                     : isComplete
                       ? 'text-[#14B8A6]'
-                      : 'text-[#A3A3A3]'
+                      : 'text-gray-500'
                   }
                 `}>
                   {section.title}
                 </span>
                 {section.requiresAck && (
-                  <span className="text-xs text-[#666]">
+                  <span className="text-xs text-gray-400">
                     {isComplete ? 'Acknowledged' : 'Requires acknowledgment'}
                   </span>
                 )}
@@ -83,12 +83,12 @@ export function ContractProgress({
       </div>
 
       {/* Progress Bar */}
-      <div className="mt-4 pt-4 border-t border-white/10">
-        <div className="flex items-center justify-between text-xs text-[#A3A3A3] mb-2">
+      <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
           <span>Progress</span>
           <span>{completedSections.size} of {CONTRACT_SECTIONS.length} sections</span>
         </div>
-        <div className="h-2 bg-[#141d31] rounded-full overflow-hidden">
+        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-[#14B8A6] to-[#14B8A6]/70 transition-all duration-500"
             style={{ width: `${(completedSections.size / CONTRACT_SECTIONS.length) * 100}%` }}

@@ -130,15 +130,13 @@ export const OPTION_PRICES = {
 export const CONCRETE_PRICES = {
   none: 0,
   piers: 125,       // per pier
-  slab: 8,          // per sqft (4" slab w/ rebar, vapor barrier, control joints)
-  turnkey: 10       // per sqft (full turnkey with forms)
+  slab: 8,          // per sqft (4" slab w/ #3 rebar, vapor barrier, control joints)
+  turnkey: 10       // per sqft (4" turnkey w/ #3 rebar, forms, perimeter thickening)
 } as const;
 
-// Concrete thickness multipliers
+// All slabs are 4" — no thickness multiplier needed
 export const CONCRETE_THICKNESS_MULTIPLIERS = {
   4: 1.0,
-  5: 1.15,
-  6: 1.30
 } as const;
 
 // ==================== ADMIN CONFIGURABLE (from original HTML) ====================
@@ -156,7 +154,7 @@ export const ADMIN_CONFIG = {
 // ==================== OTHER PRICING ====================
 // Labor and delivery
 export const LABOR_RATE_PER_SQFT = 3.50;
-export const DELIVERY_BASE = 500;
+export const DELIVERY_BASE = 1800;  // Delivery + Haul Off flat rate
 export const DELIVERY_RATE_PER_MILE = 3.50;
 
 // Deposit percentage

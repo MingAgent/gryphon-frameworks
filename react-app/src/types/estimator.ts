@@ -25,7 +25,7 @@ export interface CustomerInfo {
 // Building Configuration Types
 export type LegType = 'standard' | 'certified';
 export type BuildingView = 'front' | 'back' | 'left' | 'right';
-export type BuildingType = 'pole-barn' | 'carport' | 'bolt-up';
+export type BuildingType = 'pole-barn' | 'carport' | 'i-beam' | 'bolt-up';
 
 export interface Breezeway {
   frontBack: boolean;
@@ -87,6 +87,7 @@ export interface ColorConfig {
   roof: string;
   walls: string;
   trim: string;
+  doors: string;
 }
 
 // Concrete Types
@@ -171,6 +172,63 @@ export interface ContractConfig {
 // Door Position Map (for drag-drop)
 export type DoorPositionMap = Record<string, number>; // key: `${doorId}-${view}`
 
+// Bolt-Up Custom Quote (for pre-engineered steel buildings)
+export interface BoltUpQuote {
+  // Building Use
+  buildingUse: string;
+  useDetails: string;
+
+  // Dimensions
+  width: string;
+  length: string;
+  eaveHeight: string;
+  roofPitch: string;
+  framingType: string;
+  roofType: string;
+
+  // Location & Engineering
+  siteCity: string;
+  siteZip: string;
+  windSpeed: string;
+  snowLoad: string;
+  collateralLoad: string;
+
+  // Openings
+  overheadDoors: string;
+  walkDoors: string;
+  windows: string;
+  loadingDocks: string;
+
+  // Wall & Roof Systems
+  wallPanelType: string;
+  wallInsulation: string;
+  roofInsulation: string;
+
+  // Special Features
+  hasMezzanine: boolean;
+  hasCrane: boolean;
+  hasSkylights: boolean;
+  hasCanopies: boolean;
+  hasGutters: boolean;
+  hasSprinklers: boolean;
+
+  // Crane Details (if applicable)
+  craneCapacity: string;
+  craneHookHeight: string;
+  craneSpan: string;
+
+  // Mezzanine Details (if applicable)
+  mezzanineSize: string;
+  mezzanineLoad: string;
+
+  // Timeline & Budget
+  timeline: string;
+  budget: string;
+
+  // Additional Notes
+  additionalNotes: string;
+}
+
 // Complete Estimator State
 export interface EstimatorState {
   // Navigation
@@ -186,6 +244,7 @@ export interface EstimatorState {
   concrete: ConcreteConfig;
   pricing: PricingBreakdown;
   contract: ContractConfig;
+  boltUpQuote: BoltUpQuote;
 }
 
 // Actions Interface
@@ -224,6 +283,9 @@ export interface EstimatorActions {
   updateDoor: (doorId: string, updates: Partial<DoorConfig>) => void;
   addWindow: (window: WindowConfig) => void;
   removeWindow: (windowId: string) => void;
+
+  // Bolt-Up Quote
+  setBoltUpQuote: (quote: Partial<BoltUpQuote>) => void;
 
   // Calculations
   calculatePricing: () => void;

@@ -1,20 +1,17 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, FileText, Download, Send, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, Download, Send, Loader2, HardHat, Check } from 'lucide-react';
 import { ContractProgress } from './ContractProgress';
 import {
-  CustomerInfoSection,
-  ProjectOverviewSection,
-  PaymentTermsSection,
-  TimelineSection,
-  ResponsibilitiesSection,
-  WarrantiesSection,
-  LegalProvisionsSection,
-  SignaturesSection
+  TermsAndConditionsSection,
+  ResponsibilitiesAndLegalSection,
+  ReviewAndSignSection
 } from './sections';
 import { CONTRACT_SECTIONS } from '../../constants/contractTerms';
 import { useEstimatorStore } from '../../store/estimatorStore';
 import { downloadContractPdf } from '../../utils/pdf/contractPdf';
+import { downloadConstructionPlan } from '../../utils/pdf/constructionPlan';
+import { createConstructionPlanRecord, isAirtableConfigured } from '../../utils/airtable';
 import Button from '../common/Button/Button';
 import { containerVariants } from '../../animations/variants';
 import type { ContractConfig, PaymentMethod } from '../../types/estimator';
@@ -34,7 +31,12 @@ interface SignatureState {
 }
 
 export function ContractWizard() {
-  const { customer, building, accessories, colors, concrete, pricing } = useEstimatorStore();
+  const { customer, building, accessories, colors, concrete, pricing, calculatePricing } = useEstimatorStore();
+
+  // Recalculate pricing on mount to ensure correct values
+  useEffect(() => {
+    calculatePricing();
+  }, [calculatePricing]);
 
   // Go back to estimate view
   const handleBackToEstimate = () => {
@@ -46,15 +48,13 @@ export function ContractWizard() {
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSendingToTeam, setIsSendingToTeam] = useState(false);
+  const [sentToTeam, setSentToTeam] = useState(false);
 
-  // Section acknowledgment states
+  // Section acknowledgment states for the 2 acknowledgment sections
   const [sectionStates, setSectionStates] = useState<Record<string, SectionState>>({
-    projectOverview: { checked: false, initialed: false, initialsData: null },
-    paymentTerms: { checked: false, initialed: false, initialsData: null },
-    timeline: { checked: false, initialed: false, initialsData: null },
-    responsibilities: { checked: false, initialed: false, initialsData: null },
-    warranties: { checked: false, initialed: false, initialsData: null },
-    legalProvisions: { checked: false, initialed: false, initialsData: null }
+    termsAndConditions: { checked: false, initialed: false, initialsData: null },
+    responsibilitiesAndLegal: { checked: false, initialed: false, initialsData: null }
   });
 
   // Signature states
@@ -70,27 +70,25 @@ export function ContractWizard() {
     const section = CONTRACT_SECTIONS.find(s => s.id === sectionId);
     if (!section) return false;
 
-    // Customer info section doesn't require acknowledgment
-    if (!section.requiresAck) {
-      if (sectionId === 'customerInfo') {
-        return customer.name.trim().length > 0;
-      }
-      if (sectionId === 'signatures') {
-        return (
-          signatures.ownerSignature !== null &&
-          signatures.ownerTypedName.trim().length > 0 &&
-          signatures.contractorSignature !== null &&
-          signatures.contractorTypedName.trim().length > 0 &&
-          paymentMethod !== null
-        );
-      }
-      return true;
+    // Review & Sign section (doesn't require checkbox/initials - needs signatures)
+    if (sectionId === 'reviewAndSign') {
+      return (
+        signatures.ownerSignature !== null &&
+        signatures.ownerTypedName.trim().length > 0 &&
+        signatures.contractorSignature !== null &&
+        signatures.contractorTypedName.trim().length > 0 &&
+        paymentMethod !== null
+      );
     }
 
-    // Sections that require acknowledgment
-    const state = sectionStates[sectionId];
-    return state?.checked && state?.initialed;
-  }, [customer.name, signatures, paymentMethod, sectionStates]);
+    // Sections that require acknowledgment (checkbox + initials)
+    if (section.requiresAck) {
+      const state = sectionStates[sectionId];
+      return state?.checked && state?.initialed;
+    }
+
+    return true;
+  }, [signatures, paymentMethod, sectionStates]);
 
   // Get completed sections
   const completedSections = useMemo(() => {
@@ -120,14 +118,9 @@ export function ContractWizard() {
     const current = CONTRACT_SECTIONS[currentSection];
     if (!current) return false;
 
-    // Customer info just needs name
-    if (current.id === 'customerInfo') {
-      return customer.name.trim().length > 0;
-    }
-
-    // Signature section - check all fields
-    if (current.id === 'signatures') {
-      return isSectionComplete('signatures');
+    // Review & Sign section - check all fields
+    if (current.id === 'reviewAndSign') {
+      return isSectionComplete('reviewAndSign');
     }
 
     // Acknowledgment sections need checkbox + initials
@@ -136,7 +129,7 @@ export function ContractWizard() {
     }
 
     return true;
-  }, [currentSection, customer.name, isSectionComplete]);
+  }, [currentSection, isSectionComplete]);
 
   // Handle section state updates
   const handleCheckChange = (sectionId: string, checked: boolean) => {
@@ -196,41 +189,42 @@ export function ContractWizard() {
     return {
       currentSection,
       sections: {
+        // Map the condensed sections to the expected structure for PDF
         projectOverview: {
-          checked: sectionStates.projectOverview.checked,
-          initialed: sectionStates.projectOverview.initialed,
-          initialsData: sectionStates.projectOverview.initialsData,
-          timestamp: sectionStates.projectOverview.checked ? new Date().toISOString() : null
+          checked: sectionStates.termsAndConditions.checked,
+          initialed: sectionStates.termsAndConditions.initialed,
+          initialsData: sectionStates.termsAndConditions.initialsData,
+          timestamp: sectionStates.termsAndConditions.checked ? new Date().toISOString() : null
         },
         paymentTerms: {
-          checked: sectionStates.paymentTerms.checked,
-          initialed: sectionStates.paymentTerms.initialed,
-          initialsData: sectionStates.paymentTerms.initialsData,
-          timestamp: sectionStates.paymentTerms.checked ? new Date().toISOString() : null
+          checked: sectionStates.termsAndConditions.checked,
+          initialed: sectionStates.termsAndConditions.initialed,
+          initialsData: sectionStates.termsAndConditions.initialsData,
+          timestamp: sectionStates.termsAndConditions.checked ? new Date().toISOString() : null
         },
         timeline: {
-          checked: sectionStates.timeline.checked,
-          initialed: sectionStates.timeline.initialed,
-          initialsData: sectionStates.timeline.initialsData,
-          timestamp: sectionStates.timeline.checked ? new Date().toISOString() : null
+          checked: sectionStates.termsAndConditions.checked,
+          initialed: sectionStates.termsAndConditions.initialed,
+          initialsData: sectionStates.termsAndConditions.initialsData,
+          timestamp: sectionStates.termsAndConditions.checked ? new Date().toISOString() : null
         },
         responsibilities: {
-          checked: sectionStates.responsibilities.checked,
-          initialed: sectionStates.responsibilities.initialed,
-          initialsData: sectionStates.responsibilities.initialsData,
-          timestamp: sectionStates.responsibilities.checked ? new Date().toISOString() : null
+          checked: sectionStates.responsibilitiesAndLegal.checked,
+          initialed: sectionStates.responsibilitiesAndLegal.initialed,
+          initialsData: sectionStates.responsibilitiesAndLegal.initialsData,
+          timestamp: sectionStates.responsibilitiesAndLegal.checked ? new Date().toISOString() : null
         },
         warranties: {
-          checked: sectionStates.warranties.checked,
-          initialed: sectionStates.warranties.initialed,
-          initialsData: sectionStates.warranties.initialsData,
-          timestamp: sectionStates.warranties.checked ? new Date().toISOString() : null
+          checked: sectionStates.responsibilitiesAndLegal.checked,
+          initialed: sectionStates.responsibilitiesAndLegal.initialed,
+          initialsData: sectionStates.responsibilitiesAndLegal.initialsData,
+          timestamp: sectionStates.responsibilitiesAndLegal.checked ? new Date().toISOString() : null
         },
         legalProvisions: {
-          checked: sectionStates.legalProvisions.checked,
-          initialed: sectionStates.legalProvisions.initialed,
-          initialsData: sectionStates.legalProvisions.initialsData,
-          timestamp: sectionStates.legalProvisions.checked ? new Date().toISOString() : null
+          checked: sectionStates.responsibilitiesAndLegal.checked,
+          initialed: sectionStates.responsibilitiesAndLegal.initialed,
+          initialsData: sectionStates.responsibilitiesAndLegal.initialsData,
+          timestamp: sectionStates.responsibilitiesAndLegal.checked ? new Date().toISOString() : null
         }
       },
       signatures: {
@@ -262,9 +256,10 @@ export function ContractWizard() {
         pricing,
         contract: buildContractConfig()
       });
-    } catch (error) {
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
       console.error('Error generating PDF:', error);
-      alert('There was an error generating the PDF. Please try again.');
+      alert(`PDF error: ${msg}`);
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -287,11 +282,48 @@ export function ContractWizard() {
 
       // Here you would also send to a backend, email, etc.
       alert('Contract submitted successfully! A copy has been downloaded to your device.');
-    } catch (error) {
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
       console.error('Error submitting contract:', error);
-      alert('There was an error submitting the contract. Please try again.');
+      alert(`Contract error: ${msg}`);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Send construction plan to team (download + create Airtable record)
+  const handleSendToConstructionTeam = async () => {
+    setIsSendingToTeam(true);
+    try {
+      // 1. Download the standalone construction plan PDF
+      downloadConstructionPlan({
+        customer,
+        building,
+        accessories,
+        concrete,
+        colors,
+      });
+
+      // 2. Create record in Airtable (if configured)
+      if (isAirtableConfigured()) {
+        const recordId = await createConstructionPlanRecord({
+          customer,
+          building,
+          pricing,
+        });
+        if (recordId) {
+          console.log('[Airtable] Construction plan record created:', recordId);
+        }
+      }
+
+      setSentToTeam(true);
+      setTimeout(() => setSentToTeam(false), 4000); // Reset after 4s
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error('Error sending to construction team:', error);
+      alert(`Construction plan error: ${msg}`);
+    } finally {
+      setIsSendingToTeam(false);
     }
   };
 
@@ -300,78 +332,31 @@ export function ContractWizard() {
     const sectionId = CONTRACT_SECTIONS[currentSection]?.id;
 
     switch (sectionId) {
-      case 'customerInfo':
-        return <CustomerInfoSection />;
-
-      case 'projectOverview':
+      case 'termsAndConditions':
         return (
-          <ProjectOverviewSection
-            isChecked={sectionStates.projectOverview.checked}
-            isInitialed={sectionStates.projectOverview.initialed}
-            initialsData={sectionStates.projectOverview.initialsData}
-            onCheckChange={(checked) => handleCheckChange('projectOverview', checked)}
-            onInitialsChange={(hasInitials, dataUrl) => handleInitialsChange('projectOverview', hasInitials, dataUrl)}
+          <TermsAndConditionsSection
+            isChecked={sectionStates.termsAndConditions.checked}
+            isInitialed={sectionStates.termsAndConditions.initialed}
+            initialsData={sectionStates.termsAndConditions.initialsData}
+            onCheckChange={(checked) => handleCheckChange('termsAndConditions', checked)}
+            onInitialsChange={(hasInitials, dataUrl) => handleInitialsChange('termsAndConditions', hasInitials, dataUrl)}
           />
         );
 
-      case 'paymentTerms':
+      case 'responsibilitiesAndLegal':
         return (
-          <PaymentTermsSection
-            isChecked={sectionStates.paymentTerms.checked}
-            isInitialed={sectionStates.paymentTerms.initialed}
-            initialsData={sectionStates.paymentTerms.initialsData}
-            onCheckChange={(checked) => handleCheckChange('paymentTerms', checked)}
-            onInitialsChange={(hasInitials, dataUrl) => handleInitialsChange('paymentTerms', hasInitials, dataUrl)}
+          <ResponsibilitiesAndLegalSection
+            isChecked={sectionStates.responsibilitiesAndLegal.checked}
+            isInitialed={sectionStates.responsibilitiesAndLegal.initialed}
+            initialsData={sectionStates.responsibilitiesAndLegal.initialsData}
+            onCheckChange={(checked) => handleCheckChange('responsibilitiesAndLegal', checked)}
+            onInitialsChange={(hasInitials, dataUrl) => handleInitialsChange('responsibilitiesAndLegal', hasInitials, dataUrl)}
           />
         );
 
-      case 'timeline':
+      case 'reviewAndSign':
         return (
-          <TimelineSection
-            isChecked={sectionStates.timeline.checked}
-            isInitialed={sectionStates.timeline.initialed}
-            initialsData={sectionStates.timeline.initialsData}
-            onCheckChange={(checked) => handleCheckChange('timeline', checked)}
-            onInitialsChange={(hasInitials, dataUrl) => handleInitialsChange('timeline', hasInitials, dataUrl)}
-          />
-        );
-
-      case 'responsibilities':
-        return (
-          <ResponsibilitiesSection
-            isChecked={sectionStates.responsibilities.checked}
-            isInitialed={sectionStates.responsibilities.initialed}
-            initialsData={sectionStates.responsibilities.initialsData}
-            onCheckChange={(checked) => handleCheckChange('responsibilities', checked)}
-            onInitialsChange={(hasInitials, dataUrl) => handleInitialsChange('responsibilities', hasInitials, dataUrl)}
-          />
-        );
-
-      case 'warranties':
-        return (
-          <WarrantiesSection
-            isChecked={sectionStates.warranties.checked}
-            isInitialed={sectionStates.warranties.initialed}
-            initialsData={sectionStates.warranties.initialsData}
-            onCheckChange={(checked) => handleCheckChange('warranties', checked)}
-            onInitialsChange={(hasInitials, dataUrl) => handleInitialsChange('warranties', hasInitials, dataUrl)}
-          />
-        );
-
-      case 'legalProvisions':
-        return (
-          <LegalProvisionsSection
-            isChecked={sectionStates.legalProvisions.checked}
-            isInitialed={sectionStates.legalProvisions.initialed}
-            initialsData={sectionStates.legalProvisions.initialsData}
-            onCheckChange={(checked) => handleCheckChange('legalProvisions', checked)}
-            onInitialsChange={(hasInitials, dataUrl) => handleInitialsChange('legalProvisions', hasInitials, dataUrl)}
-          />
-        );
-
-      case 'signatures':
-        return (
-          <SignaturesSection
+          <ReviewAndSignSection
             ownerSignature={signatures.ownerSignature}
             ownerTypedName={signatures.ownerTypedName}
             contractorSignature={signatures.contractorSignature}
@@ -399,13 +384,13 @@ export function ContractWizard() {
       className="min-h-screen bg-[#141d31]"
     >
       {/* Header */}
-      <div className="bg-[#1e2a45] border-b border-white/10 px-4 py-4 sticky top-0 z-10">
+      <div className="bg-white border-b border-gray-200 px-4 py-4 sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <FileText className="w-6 h-6 text-[#14B8A6]" />
             <div>
-              <h1 className="text-lg font-bold text-white">Contract Agreement</h1>
-              <p className="text-xs text-[#A3A3A3]">
+              <h1 className="text-lg font-bold text-gray-900">Contract Agreement</h1>
+              <p className="text-xs text-gray-500">
                 {building.width}' × {building.length}' Metal Building • ${pricing.grandTotal.toLocaleString()}
               </p>
             </div>
@@ -415,7 +400,7 @@ export function ContractWizard() {
             variant="ghost"
             size="sm"
             onClick={handleBackToEstimate}
-            className="text-[#A3A3A3] hover:text-white"
+            className="text-gray-500 hover:text-gray-900"
           >
             Back to Estimate
           </Button>
@@ -449,13 +434,13 @@ export function ContractWizard() {
             </AnimatePresence>
 
             {/* Navigation Buttons */}
-            <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/10">
+            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
               <Button
                 variant="outline"
                 onClick={goToPrevSection}
                 disabled={currentSection === 0}
                 leftIcon={<ChevronLeft className="w-4 h-4" />}
-                className="border-white/20 text-white hover:bg-white/10"
+                className="border-gray-300 text-gray-700 hover:bg-gray-100"
               >
                 Previous
               </Button>
@@ -463,6 +448,22 @@ export function ContractWizard() {
               <div className="flex items-center gap-3">
                 {isLastSection && isContractComplete ? (
                   <>
+                    <Button
+                      variant="outline"
+                      onClick={handleSendToConstructionTeam}
+                      disabled={isSendingToTeam}
+                      leftIcon={
+                        sentToTeam ? <Check className="w-4 h-4" /> :
+                        isSendingToTeam ? <Loader2 className="w-4 h-4 animate-spin" /> :
+                        <HardHat className="w-4 h-4" />
+                      }
+                      className={sentToTeam
+                        ? "border-[#22C55E] text-[#22C55E] hover:bg-[#22C55E]/10"
+                        : "border-[#FF6A00] text-[#FF6A00] hover:bg-[#FF6A00]/10"
+                      }
+                    >
+                      {sentToTeam ? 'Sent!' : isSendingToTeam ? 'Sending...' : 'Send to Crew'}
+                    </Button>
                     <Button
                       variant="outline"
                       onClick={handleDownloadPdf}
