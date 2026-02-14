@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Minus, Trash2, Eye } from 'lucide-react';
 import { useEstimatorStore } from '../../../store/estimatorStore';
@@ -14,6 +14,23 @@ type WallView = 'front' | 'back' | 'left' | 'right';
 export function Step4Doors() {
   const { building, accessories, addDoor, removeDoor, updateDoor, setBuildingConfig } = useEstimatorStore();
   const [selectedDoorId, setSelectedDoorId] = useState<string | null>(null);
+
+  // Initialize with one walk door if none exists (included free)
+  useEffect(() => {
+    if (accessories.walkDoors.length === 0) {
+      const initialDoor: DoorConfig = {
+        id: generateId(),
+        type: 'walk',
+        size: '3x7',
+        width: 3,
+        height: 7,
+        wall: 'front',
+        position: 5,
+        quantity: 1
+      };
+      addDoor(initialDoor);
+    }
+  }, [accessories.walkDoors.length, addDoor]);
 
   // Handler to change building view
   const handleViewChange = (view: WallView) => {
